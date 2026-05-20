@@ -41,7 +41,7 @@ export default function ExpAmountField({
                 type="number"
                 min={0}
                 step={mode === "percent" ? 0.1 : 1}
-                value={mode === "percent" ? percentValue : value}
+                value={mode === "percent" ? (percentValue || "") : (value || "")}
                 onChange={(e) => onChange(e.target.value)}
             />
         </div>

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
+import CollapsibleCard from "./shared/CollapsibleCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 export default function AuraCalculator() {
@@ -28,20 +29,16 @@ export default function AuraCalculator() {
     }, [totalTime, auraTriggers, auraDuration, auraMultiplier, hasPrayer]);
 
     return (
-        <div className="card">
-            <header className="card-header">
-                <span className="header-icon">✨</span>
-                <h1>氣場等效倍率計算</h1>
-            </header>
-
+        <CollapsibleCard storageKey="aura.collapsed" icon="✨" title="氣場等效倍率計算">
             <div className="form-body">
                 <div className="field">
                     <label>總時間（分鐘）</label>
                     <input
                         type="number"
                         min={1}
-                        value={totalTime}
-                        onChange={(e) => setTotalTime(Math.max(1, Number(e.target.value)))}
+                        value={totalTime || ""}
+                        onChange={(e) => setTotalTime(Number(e.target.value))}
+                        onBlur={() => setTotalTime((v) => Math.max(1, v || 1))}
                     />
                 </div>
 
@@ -93,6 +90,6 @@ export default function AuraCalculator() {
                     </div>
                 )}
             </div>
-        </div>
+        </CollapsibleCard>
     );
 }

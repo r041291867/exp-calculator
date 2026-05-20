@@ -8,6 +8,7 @@ import ExpAmountField from "./shared/ExpAmountField";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
+import CollapsibleCard from "./shared/CollapsibleCard";
 
 export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel }: SharedLevelExp) {
     const {
@@ -94,20 +95,16 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     ]);
 
     return (
-        <div className="card">
-            <header className="card-header">
-                <span className="header-icon">⚡</span>
-                <h1>經驗效率計算</h1>
-            </header>
-
+        <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析">
             <div className="form-body">
                 <div className="field">
                     <label>統計時間（分鐘）</label>
                     <input
                         type="number"
                         min={1}
-                        value={durationMinutes}
-                        onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
+                        value={durationMinutes || ""}
+                        onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                        onBlur={() => setDurationMinutes((v) => Math.max(1, v || 1))}
                     />
                 </div>
 
@@ -143,8 +140,9 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                                     type="number"
                                     min={1}
                                     step={0.25}
-                                    value={hottimeMultiplier}
-                                    onChange={(e) => setHottimeMultiplier(Math.max(1, Number(e.target.value)))}
+                                    value={hottimeMultiplier || ""}
+                                    onChange={(e) => setHottimeMultiplier(Number(e.target.value))}
+                                    onBlur={() => setHottimeMultiplier((v) => Math.max(1, v || 1))}
                                 />
                                 <span className="unit-label">倍</span>
                             </div>
@@ -221,6 +219,6 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                     </>
                 )}
             </div>
-        </div>
+        </CollapsibleCard>
     );
 }

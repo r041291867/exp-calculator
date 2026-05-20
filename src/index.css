@@ -66,6 +66,32 @@ body {
     font-size: 18px;
 }
 
+.card-header-toggle {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.card-header-toggle:hover {
+    background: #222;
+}
+
+.collapse-chevron {
+    margin-left: auto;
+    font-size: 16px;
+    color: #444;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.card-header-toggle:hover .collapse-chevron {
+    color: #666;
+}
+
+.card-collapsed .card-header {
+    border-bottom: none;
+}
+
 /* ── Form body ── */
 .form-body {
     padding: 20px 22px;

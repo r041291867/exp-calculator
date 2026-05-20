@@ -7,6 +7,7 @@ import { formatMins } from "../utils/format";
 import ExpAmountField from "./shared/ExpAmountField";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
+import CollapsibleCard from "./shared/CollapsibleCard";
 
 const PRAYER_MULT = 1.25;
 
@@ -44,20 +45,16 @@ export default function ExpRateCalculator({
     }, [durationMinutes, totalExp, hasPrayer, currentLevel, currentExp]);
 
     return (
-        <div className="card">
-            <header className="card-header">
-                <span className="header-icon">⚡</span>
-                <h1>經驗效率計算</h1>
-            </header>
-
+        <CollapsibleCard storageKey="rate.collapsed" icon="⚡" title="經驗效率計算">
             <div className="form-body">
                 <div className="field">
                     <label>時間段（分鐘）</label>
                     <input
                         type="number"
                         min={1}
-                        value={durationMinutes}
-                        onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
+                        value={durationMinutes || ""}
+                        onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                        onBlur={() => setDurationMinutes((v) => Math.max(1, v || 1))}
                     />
                 </div>
 
@@ -100,6 +97,6 @@ export default function ExpRateCalculator({
                     <p className="no-result">請輸入時間段和經驗值</p>
                 )}
             </div>
-        </div>
+        </CollapsibleCard>
     );
 }

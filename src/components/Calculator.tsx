@@ -3,6 +3,7 @@ import { EXP_TABLE, getCumulativeExp } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatNumber } from "../utils/format";
+import CollapsibleCard from "./shared/CollapsibleCard";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 
@@ -60,12 +61,7 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
     }, [currentLevel, targetLevel]);
 
     return (
-        <div className="card calculator-card">
-            <header className="card-header">
-                <span className="header-icon">📊</span>
-                <h1>升級時間計算</h1>
-            </header>
-
+        <CollapsibleCard storageKey="calc.collapsed" icon="📊" title="升級時間計算" className="calculator-card">
             <div className="calculator-layout">
                 <div className="calculator-left">
                     <div className="form-body">
@@ -122,11 +118,12 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
                                     <input
                                         type="number"
                                         min={1}
-                                        value={expPerInterval}
+                                        value={expPerInterval || ""}
                                         onChange={(e) => {
-                                            setExpPerInterval(Math.max(1, Number(e.target.value)));
+                                            setExpPerInterval(Number(e.target.value));
                                             setHasCalculated(false);
                                         }}
+                                        onBlur={() => setExpPerInterval((v) => Math.max(1, v || 1))}
                                     />
                                 </div>
                             </div>
@@ -147,9 +144,10 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
                                     min={0.5}
                                     max={24}
                                     step={0.5}
-                                    value={dailyHours}
+                                    value={dailyHours || ""}
                                     style={{ textAlign: "center" }}
-                                    onChange={(e) => setDailyHours(Math.min(24, Math.max(0.5, Number(e.target.value))))}
+                                    onChange={(e) => setDailyHours(Math.min(24, Number(e.target.value)))}
+                                    onBlur={() => setDailyHours((v) => Math.min(24, Math.max(0.5, v || 0.5)))}
                                 />
                                 <button
                                     className="stepper-btn"
@@ -196,7 +194,7 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
 
                 <div className="calculator-right">
                     <div className="level-table-section">
-                        <h2 className="level-table-title">等級經驗參考（目前等級起後10等）</h2>
+                        <h2 className="level-table-title">等級經驗參考</h2>
                         <div className="level-table-scroll">
                             <table className="level-table">
                                 <thead>
@@ -231,6 +229,6 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
                 {/* end calculator-right */}
             </div>
             {/* end calculator-layout */}
-        </div>
+        </CollapsibleCard>
     );
 }

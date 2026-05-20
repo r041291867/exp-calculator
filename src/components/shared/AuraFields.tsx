@@ -20,8 +20,9 @@ export default function AuraFields({
                     <input
                         type="number"
                         min={0}
-                        value={triggers}
-                        onChange={(e) => onTriggersChange(Math.max(0, Number(e.target.value)))}
+                        value={triggers || ""}
+                        onChange={(e) => onTriggersChange(Number(e.target.value))}
+                        onBlur={() => onTriggersChange(Math.max(0, triggers || 0))}
                     />
                 </div>
                 <div className="interval-col">
@@ -30,8 +31,9 @@ export default function AuraFields({
                         type="number"
                         min={0.5}
                         step={0.5}
-                        value={duration}
-                        onChange={(e) => onDurationChange(Math.max(0.5, Number(e.target.value)))}
+                        value={duration || ""}
+                        onChange={(e) => onDurationChange(Number(e.target.value))}
+                        onBlur={() => onDurationChange(Math.max(0.5, duration || 0.5))}
                     />
                 </div>
                 <div className="interval-col">
@@ -41,8 +43,9 @@ export default function AuraFields({
                             type="number"
                             min={1}
                             step={0.25}
-                            value={multiplier}
-                            onChange={(e) => onMultiplierChange(Math.max(1, Number(e.target.value)))}
+                            value={multiplier || ""}
+                            onChange={(e) => onMultiplierChange(Number(e.target.value))}
+                            onBlur={() => onMultiplierChange(Math.max(1, multiplier || 1))}
                         />
                         <span className="unit-label">倍</span>
                     </div>
