@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
-import { EXP_TABLE, getExpToNext, getCumulativeExp } from "../data/expTable";
+import { EXP_TABLE, getCumulativeExp } from "../data/expTable";
+import { useLevelExp } from "../hooks/useLevelExp";
+import { formatNumber } from "../utils/format";
+import LevelExpField from "./shared/LevelExpField";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
-
-function formatNumber(n: number): string {
-    return n.toLocaleString("zh-TW");
-}
 
 function formatByDailyHours(totalMinutes: number, dailyHours: number): string {
     if (totalMinutes <= 0) return "0 分鐘";
@@ -30,21 +29,30 @@ function formatByDailyHours(totalMinutes: number, dailyHours: number): string {
 }
 
 export default function Calculator() {
-    const [currentLevel, setCurrentLevel] = useState(1);
-    const [currentExp, setCurrentExp] = useState(0);
+    const {
+        currentLevel, currentExp, expInputMode,
+        maxCurrentExp, expPercentValue,
+        setCurrentLevel, setCurrentExp, setExpInputMode,
+        handleExpChange: baseHandleExpChange,
+    } = useLevelExp();
+
     const [targetLevel, setTargetLevel] = useState(10);
     const [intervalMinutes, setIntervalMinutes] = useState(10);
     const [expPerInterval, setExpPerInterval] = useState(1000);
     const [hasCalculated, setHasCalculated] = useState(false);
-    const [expInputMode, setExpInputMode] = useState<"number" | "percent">("number");
     const [dailyHours, setDailyHours] = useState(2);
 
-    const maxCurrentExp = useMemo(() => getExpToNext(currentLevel) - 1, [currentLevel]);
+    const handleLevelChange = (level: number) => {
+        setCurrentLevel(level);
+        setCurrentExp(0);
+        setHasCalculated(false);
+        if (targetLevel <= level) setTargetLevel(Math.min(level + 1, 200));
+    };
 
-    const expPercentValue = useMemo(() => {
-        if (maxCurrentExp === 0) return 0;
-        return Math.round((currentExp / maxCurrentExp) * 1000) / 10;
-    }, [currentExp, maxCurrentExp]);
+    const handleExpChange = (raw: string) => {
+        baseHandleExpChange(raw);
+        setHasCalculated(false);
+    };
 
     const result = useMemo(() => {
         if (targetLevel <= currentLevel) return null;
@@ -61,203 +69,161 @@ export default function Calculator() {
         return EXP_TABLE.filter((e) => e.level >= currentLevel && e.level <= endLevel);
     }, [currentLevel, targetLevel]);
 
-    const handleCurrentLevelChange = (level: number) => {
-        setCurrentLevel(level);
-        setCurrentExp(0);
-        setHasCalculated(false);
-        if (targetLevel <= level) setTargetLevel(Math.min(level + 1, 200));
-    };
-
-    const handleExpChange = (raw: string) => {
-        if (expInputMode === "percent") {
-            const pct = Math.min(100, Math.max(0, Number(raw)));
-            setCurrentExp(Math.round((pct / 100) * maxCurrentExp));
-        } else {
-            setCurrentExp(Math.min(Math.max(0, Number(raw)), maxCurrentExp));
-        }
-        setHasCalculated(false);
-    };
-
     return (
         <div className="card">
-                <header className="card-header">
-                    <span className="header-icon">📊</span>
-                    <h1>升級時間計算</h1>
-                </header>
+            <header className="card-header">
+                <span className="header-icon">📊</span>
+                <h1>升級時間計算</h1>
+            </header>
 
-                <div className="form-body">
-                    <div className="field">
-                        <label>目前等級 (1-200)</label>
-                        <select value={currentLevel} onChange={(e) => handleCurrentLevelChange(Number(e.target.value))}>
-                            {EXP_TABLE.slice(0, 199).map((entry) => (
-                                <option key={entry.level} value={entry.level}>
-                                    {entry.level} 級
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+            <div className="form-body">
+                <LevelExpField
+                    level={currentLevel}
+                    onLevelChange={handleLevelChange}
+                    exp={currentExp}
+                    onExpChange={handleExpChange}
+                    mode={expInputMode}
+                    onModeChange={setExpInputMode}
+                    maxExp={maxCurrentExp}
+                    expPercent={expPercentValue}
+                />
 
-                    <div className="field">
-                        <div className="field-label-row">
-                            <label>
-                                目前經驗值&nbsp;
-                                {expInputMode === "number" ? `(0 - ${formatNumber(maxCurrentExp)})` : "(0 - 100%)"}
-                            </label>
-                            <div className="input-mode-switch">
-                                <button
-                                    className={expInputMode === "number" ? "active" : ""}
-                                    onClick={() => setExpInputMode("number")}
-                                >
-                                    數值
-                                </button>
-                                <button
-                                    className={expInputMode === "percent" ? "active" : ""}
-                                    onClick={() => setExpInputMode("percent")}
-                                >
-                                    %
-                                </button>
-                            </div>
+                <div className="field">
+                    <label>目標等級 (2-200)</label>
+                    <select
+                        value={targetLevel}
+                        onChange={(e) => {
+                            setTargetLevel(Number(e.target.value));
+                            setHasCalculated(false);
+                        }}
+                    >
+                        {EXP_TABLE.slice(1).map((entry) => (
+                            <option
+                                key={entry.level}
+                                value={entry.level}
+                                disabled={entry.level <= currentLevel}
+                            >
+                                {entry.level} 級
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="field">
+                    <label>時間區間設定</label>
+                    <div className="interval-row">
+                        <div className="interval-col">
+                            <span className="sub-label">時間區間（分鐘）</span>
+                            <select
+                                value={intervalMinutes}
+                                onChange={(e) => {
+                                    setIntervalMinutes(Number(e.target.value));
+                                    setHasCalculated(false);
+                                }}
+                            >
+                                {TIME_INTERVAL_OPTIONS.map((m) => (
+                                    <option key={m} value={m}>
+                                        {m}分鐘
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                        <input
-                            type="number"
-                            min={0}
-                            max={expInputMode === "percent" ? 100 : maxCurrentExp}
-                            step={expInputMode === "percent" ? 0.1 : 1}
-                            value={expInputMode === "percent" ? expPercentValue : currentExp}
-                            onChange={(e) => handleExpChange(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="field">
-                        <label>目標等級 (2-200)</label>
-                        <select
-                            value={targetLevel}
-                            onChange={(e) => {
-                                setTargetLevel(Number(e.target.value));
-                                setHasCalculated(false);
-                            }}
-                        >
-                            {EXP_TABLE.slice(1).map((entry) => (
-                                <option key={entry.level} value={entry.level} disabled={entry.level <= currentLevel}>
-                                    {entry.level} 級
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="field">
-                        <label>時間區間設定</label>
-                        <div className="interval-row">
-                            <div className="interval-col">
-                                <span className="sub-label">時間區間（分鐘）</span>
-                                <select
-                                    value={intervalMinutes}
-                                    onChange={(e) => {
-                                        setIntervalMinutes(Number(e.target.value));
-                                        setHasCalculated(false);
-                                    }}
-                                >
-                                    {TIME_INTERVAL_OPTIONS.map((m) => (
-                                        <option key={m} value={m}>
-                                            {m}分鐘
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="interval-col">
-                                <span className="sub-label">該時間經驗值</span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={expPerInterval}
-                                    onChange={(e) => {
-                                        setExpPerInterval(Math.max(1, Number(e.target.value)));
-                                        setHasCalculated(false);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <p className="hint">選擇適合的時間區間，例如組隊任務通常需要更長時間</p>
-                    </div>
-
-                    <div className="field">
-                        <label>每天練功時數</label>
-                        <div className="daily-hours-row">
+                        <div className="interval-col">
+                            <span className="sub-label">該時間經驗值</span>
                             <input
                                 type="number"
-                                min={0.5}
-                                max={24}
-                                step={0.5}
-                                value={dailyHours}
-                                onChange={(e) => setDailyHours(Math.min(24, Math.max(0.5, Number(e.target.value))))}
+                                min={1}
+                                value={expPerInterval}
+                                onChange={(e) => {
+                                    setExpPerInterval(Math.max(1, Number(e.target.value)));
+                                    setHasCalculated(false);
+                                }}
                             />
-                            <span className="unit-label">小時 / 天</span>
                         </div>
                     </div>
+                    <p className="hint">選擇適合的時間區間，例如組隊任務通常需要更長時間</p>
                 </div>
 
-                <div className="calc-bar">
-                    <button className="calc-btn" onClick={() => setHasCalculated(true)}>
-                        計算
-                    </button>
-                </div>
-
-                <div className="result-card">
-                    <h2>計算結果</h2>
-                    {!hasCalculated ? (
-                        <p className="no-result">點擊計算以查看結果</p>
-                    ) : result ? (
-                        <div className="result-items">
-                            <div className="result-item">
-                                <span className="result-value">{formatNumber(result.remaining)}</span>
-                                <span className="result-label">還需經驗值</span>
-                            </div>
-                            <div className="divider" />
-                            <div className="result-item">
-                                <span className="result-value">
-                                    {formatByDailyHours(result.totalMinutes, dailyHours)}
-                                </span>
-                                <span className="result-label">預估天數</span>
-                                <span className="result-sublabel">每天 {dailyHours} 小時練功</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="no-result">請選擇高於目前等級的目標等級</p>
-                    )}
-                </div>
-
-                <div className="level-table-section">
-                    <h2 className="level-table-title">等級經驗參考（目前等級起後10等）</h2>
-                    <div className="level-table-scroll">
-                        <table className="level-table">
-                            <thead>
-                                <tr>
-                                    <th>等級</th>
-                                    <th className="text-right">升級所需經驗</th>
-                                    <th className="text-right">累計總經驗</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {levelTableData.map((entry) => (
-                                    <tr
-                                        key={entry.level}
-                                        className={
-                                            entry.level === currentLevel
-                                                ? "current-level-row"
-                                                : entry.level === targetLevel
-                                                  ? "target-level-row"
-                                                  : ""
-                                        }
-                                    >
-                                        <td>{entry.level}</td>
-                                        <td className="text-right">{formatNumber(entry.expToNext)}</td>
-                                        <td className="text-right">{formatNumber(entry.cumulativeExp)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                <div className="field">
+                    <label>每天練功時數</label>
+                    <div className="daily-hours-row">
+                        <input
+                            type="number"
+                            min={0.5}
+                            max={24}
+                            step={0.5}
+                            value={dailyHours}
+                            onChange={(e) =>
+                                setDailyHours(Math.min(24, Math.max(0.5, Number(e.target.value))))
+                            }
+                        />
+                        <span className="unit-label">小時 / 天</span>
                     </div>
                 </div>
             </div>
+
+            <div className="calc-bar">
+                <button className="calc-btn" onClick={() => setHasCalculated(true)}>
+                    計算
+                </button>
+            </div>
+
+            <div className="result-card">
+                <h2>計算結果</h2>
+                {!hasCalculated ? (
+                    <p className="no-result">點擊計算以查看結果</p>
+                ) : result ? (
+                    <div className="result-items">
+                        <div className="result-item">
+                            <span className="result-value">{formatNumber(result.remaining)}</span>
+                            <span className="result-label">還需經驗值</span>
+                        </div>
+                        <div className="divider" />
+                        <div className="result-item">
+                            <span className="result-value">
+                                {formatByDailyHours(result.totalMinutes, dailyHours)}
+                            </span>
+                            <span className="result-label">預估天數</span>
+                            <span className="result-sublabel">每天 {dailyHours} 小時練功</span>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="no-result">請選擇高於目前等級的目標等級</p>
+                )}
+            </div>
+
+            <div className="level-table-section">
+                <h2 className="level-table-title">等級經驗參考（目前等級起後10等）</h2>
+                <div className="level-table-scroll">
+                    <table className="level-table">
+                        <thead>
+                            <tr>
+                                <th>等級</th>
+                                <th className="text-right">升級所需經驗</th>
+                                <th className="text-right">累計總經驗</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {levelTableData.map((entry) => (
+                                <tr
+                                    key={entry.level}
+                                    className={
+                                        entry.level === currentLevel
+                                            ? "current-level-row"
+                                            : entry.level === targetLevel
+                                              ? "target-level-row"
+                                              : ""
+                                    }
+                                >
+                                    <td>{entry.level}</td>
+                                    <td className="text-right">{formatNumber(entry.expToNext)}</td>
+                                    <td className="text-right">{formatNumber(entry.cumulativeExp)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     );
 }

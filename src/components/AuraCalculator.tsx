@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import AuraFields from "./shared/AuraFields";
+import PrayerCheckbox from "./shared/PrayerCheckbox";
 
 export default function AuraCalculator() {
     const [totalTime, setTotalTime] = useState(60);
@@ -17,20 +19,11 @@ export default function AuraCalculator() {
             return { valid: false as const, auraTime };
         }
 
-        // All multipliers are additive:
-        // avg = ((nonAuraTime × 1) + (auraTime × N)) / T
-        // prayer adds flat +0.25 on top
         const avgWithoutPrayer = (nonAuraTime * 1 + auraTime * auraMultiplier) / totalTime;
         const effective = avgWithoutPrayer + (hasPrayer ? 0.25 : 0);
         const auraPercent = Math.round((auraTime / totalTime) * 100);
 
-        return {
-            valid: true as const,
-            effective,
-            avgWithoutPrayer,
-            auraTime,
-            auraPercent,
-        };
+        return { valid: true as const, effective, avgWithoutPrayer, auraTime, auraPercent };
     }, [totalTime, auraTriggers, auraDuration, auraMultiplier, hasPrayer]);
 
     return (
@@ -51,61 +44,16 @@ export default function AuraCalculator() {
                     />
                 </div>
 
-                <div className="field">
-                    <label>觸發設定</label>
-                    <div className="interval-row">
-                        <div className="interval-col">
-                            <span className="sub-label">觸發次數</span>
-                            <input
-                                type="number"
-                                min={0}
-                                value={auraTriggers}
-                                onChange={(e) =>
-                                    setAuraTriggers(Math.max(0, Number(e.target.value)))
-                                }
-                            />
-                        </div>
-                        <div className="interval-col">
-                            <span className="sub-label">氣場時間（分/次）</span>
-                            <input
-                                type="number"
-                                min={0.5}
-                                step={0.5}
-                                value={auraDuration}
-                                onChange={(e) =>
-                                    setAuraDuration(Math.max(0.5, Number(e.target.value)))
-                                }
-                            />
-                        </div>
-                    </div>
-                </div>
+                <AuraFields
+                    triggers={auraTriggers}
+                    onTriggersChange={setAuraTriggers}
+                    duration={auraDuration}
+                    onDurationChange={setAuraDuration}
+                    multiplier={auraMultiplier}
+                    onMultiplierChange={setAuraMultiplier}
+                />
 
-                <div className="field">
-                    <label>氣場倍數</label>
-                    <div className="daily-hours-row">
-                        <input
-                            type="number"
-                            min={1}
-                            step={0.25}
-                            value={auraMultiplier}
-                            onChange={(e) =>
-                                setAuraMultiplier(Math.max(1, Number(e.target.value)))
-                            }
-                        />
-                        <span className="unit-label">倍</span>
-                    </div>
-                </div>
-
-                <div className="field">
-                    <label className="prayer-checkbox-row">
-                        <input
-                            type="checkbox"
-                            checked={hasPrayer}
-                            onChange={(e) => setHasPrayer(e.target.checked)}
-                        />
-                        <span>有祈禱（+0.25 倍）</span>
-                    </label>
-                </div>
+                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
             </div>
 
             <div className="rate-result-section">

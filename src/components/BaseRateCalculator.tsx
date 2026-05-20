@@ -1,28 +1,30 @@
 import { useState, useMemo } from "react";
-import { EXP_TABLE, getExpToNext } from "../data/expTable";
-
-function formatNumber(n: number): string {
-    return n.toLocaleString("zh-TW");
-}
-
-function formatMins(mins: number): string {
-    if (mins <= 0) return "已達標";
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    if (h === 0) return `${m} 分鐘`;
-    if (m === 0) return `${h} 小時`;
-    return `${h} 小時 ${m} 分鐘`;
-}
+import { getExpToNext } from "../data/expTable";
+import { useLevelExp } from "../hooks/useLevelExp";
+import { useTotalExp } from "../hooks/useTotalExp";
+import { formatMins } from "../utils/format";
+import LevelExpField from "./shared/LevelExpField";
+import ExpAmountField from "./shared/ExpAmountField";
+import AuraFields from "./shared/AuraFields";
+import PrayerCheckbox from "./shared/PrayerCheckbox";
+import RateResultGrid from "./shared/RateResultGrid";
 
 export default function BaseRateCalculator() {
-    const [currentLevel, setCurrentLevel] = useState(1);
-    const [currentExp, setCurrentExp] = useState(0);
-    const [expInputMode, setExpInputMode] = useState<"number" | "percent">("number");
+    const {
+        currentLevel, currentExp, expInputMode,
+        expToNextLevel, maxCurrentExp, expPercentValue,
+        setCurrentLevel, setCurrentExp, setExpInputMode,
+        handleExpChange,
+    } = useLevelExp();
+
+    const {
+        totalExp, setTotalExp,
+        totalExpInputMode, setTotalExpInputMode,
+        totalExpPercentValue,
+        handleTotalExpChange,
+    } = useTotalExp(expToNextLevel);
 
     const [durationMinutes, setDurationMinutes] = useState(40);
-    const [totalExp, setTotalExp] = useState(100000);
-    const [totalExpInputMode, setTotalExpInputMode] = useState<"number" | "percent">("number");
-
     const [hasHottime, setHasHottime] = useState(false);
     const [hottimeMultiplier, setHottimeMultiplier] = useState(2);
     const [auraTriggers, setAuraTriggers] = useState(0);
@@ -30,40 +32,10 @@ export default function BaseRateCalculator() {
     const [auraMultiplier, setAuraMultiplier] = useState(2);
     const [hasPrayer, setHasPrayer] = useState(false);
 
-    const expToNextLevel = useMemo(() => getExpToNext(currentLevel), [currentLevel]);
-    const maxCurrentExp = useMemo(() => expToNextLevel - 1, [expToNextLevel]);
-
-    const expPercentValue = useMemo(() => {
-        if (maxCurrentExp <= 0) return 0;
-        return Math.round((currentExp / maxCurrentExp) * 1000) / 10;
-    }, [currentExp, maxCurrentExp]);
-
-    const totalExpPercentValue = useMemo(() => {
-        if (expToNextLevel <= 0) return 0;
-        return Math.round((totalExp / expToNextLevel) * 1000) / 10;
-    }, [totalExp, expToNextLevel]);
-
-    const handleCurrentLevelChange = (level: number) => {
+    const handleLevelChange = (level: number) => {
         setCurrentLevel(level);
         setCurrentExp(0);
         setTotalExp(0);
-    };
-
-    const handleCurrentExpChange = (raw: string) => {
-        if (expInputMode === "percent") {
-            const pct = Math.min(100, Math.max(0, Number(raw)));
-            setCurrentExp(Math.round((pct / 100) * maxCurrentExp));
-        } else {
-            setCurrentExp(Math.min(Math.max(0, Number(raw)), maxCurrentExp));
-        }
-    };
-
-    const handleTotalExpChange = (raw: string) => {
-        if (totalExpInputMode === "percent") {
-            setTotalExp(Math.round(Math.max(0, Number(raw)) / 100 * expToNextLevel));
-        } else {
-            setTotalExp(Math.max(0, Number(raw)));
-        }
     };
 
     const result = useMemo(() => {
@@ -77,9 +49,6 @@ export default function BaseRateCalculator() {
             };
         }
 
-        // All multipliers additive:
-        // effective = hottimeBase + (auraMultiplier-1) × auraFraction + prayerBonus
-        // where hottimeBase = 1 (no hottime) or N (hottime active)
         const hottimeBase = hasHottime ? hottimeMultiplier : 1;
         const auraFraction = auraTime / durationMinutes;
         const effective = hottimeBase + (auraMultiplier - 1) * auraFraction + (hasPrayer ? 0.25 : 0);
@@ -94,12 +63,7 @@ export default function BaseRateCalculator() {
         const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
         const minsToLevelUp = remaining > 0 ? Math.ceil(remaining / base1xPerMin) : 0;
 
-        return {
-            type: "ok" as const,
-            effective,
-            noPrayer10, noPrayer60, withPrayer10, withPrayer60,
-            minsToLevelUp,
-        };
+        return { type: "ok" as const, effective, noPrayer10, noPrayer60, withPrayer10, withPrayer60, minsToLevelUp };
     }, [
         durationMinutes, totalExp,
         hasHottime, hottimeMultiplier,
@@ -115,55 +79,17 @@ export default function BaseRateCalculator() {
             </header>
 
             <div className="form-body">
-                {/* ── Level / exp ── */}
-                <div className="field">
-                    <label>目前等級 (1-200)</label>
-                    <select
-                        value={currentLevel}
-                        onChange={(e) => handleCurrentLevelChange(Number(e.target.value))}
-                    >
-                        {EXP_TABLE.slice(0, 199).map((entry) => (
-                            <option key={entry.level} value={entry.level}>
-                                {entry.level} 級
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                <LevelExpField
+                    level={currentLevel}
+                    onLevelChange={handleLevelChange}
+                    exp={currentExp}
+                    onExpChange={handleExpChange}
+                    mode={expInputMode}
+                    onModeChange={setExpInputMode}
+                    maxExp={maxCurrentExp}
+                    expPercent={expPercentValue}
+                />
 
-                <div className="field">
-                    <div className="field-label-row">
-                        <label>
-                            目前經驗值&nbsp;
-                            {expInputMode === "number"
-                                ? `(0 - ${formatNumber(maxCurrentExp)})`
-                                : "(0 - 100%)"}
-                        </label>
-                        <div className="input-mode-switch">
-                            <button
-                                className={expInputMode === "number" ? "active" : ""}
-                                onClick={() => setExpInputMode("number")}
-                            >
-                                數值
-                            </button>
-                            <button
-                                className={expInputMode === "percent" ? "active" : ""}
-                                onClick={() => setExpInputMode("percent")}
-                            >
-                                %
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        type="number"
-                        min={0}
-                        max={expInputMode === "percent" ? 100 : maxCurrentExp}
-                        step={expInputMode === "percent" ? 0.1 : 1}
-                        value={expInputMode === "percent" ? expPercentValue : currentExp}
-                        onChange={(e) => handleCurrentExpChange(e.target.value)}
-                    />
-                </div>
-
-                {/* ── Measurement ── */}
                 <div className="field">
                     <label>統計時間（分鐘）</label>
                     <input
@@ -174,39 +100,16 @@ export default function BaseRateCalculator() {
                     />
                 </div>
 
-                <div className="field">
-                    <div className="field-label-row">
-                        <label>
-                            統計期間獲得經驗&nbsp;
-                            {totalExpInputMode === "number"
-                                ? "(數值)"
-                                : `(% — 以 ${currentLevel} 級升級所需計算)`}
-                        </label>
-                        <div className="input-mode-switch">
-                            <button
-                                className={totalExpInputMode === "number" ? "active" : ""}
-                                onClick={() => setTotalExpInputMode("number")}
-                            >
-                                數值
-                            </button>
-                            <button
-                                className={totalExpInputMode === "percent" ? "active" : ""}
-                                onClick={() => setTotalExpInputMode("percent")}
-                            >
-                                %
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        type="number"
-                        min={0}
-                        step={totalExpInputMode === "percent" ? 0.1 : 1}
-                        value={totalExpInputMode === "percent" ? totalExpPercentValue : totalExp}
-                        onChange={(e) => handleTotalExpChange(e.target.value)}
-                    />
-                </div>
+                <ExpAmountField
+                    labelBase="統計期間獲得經驗"
+                    currentLevel={currentLevel}
+                    value={totalExp}
+                    percentValue={totalExpPercentValue}
+                    mode={totalExpInputMode}
+                    onModeChange={setTotalExpInputMode}
+                    onChange={handleTotalExpChange}
+                />
 
-                {/* ── Buff settings ── */}
                 <div className="field-divider"><span>當時倍率設定</span></div>
 
                 <div className="field">
@@ -236,61 +139,16 @@ export default function BaseRateCalculator() {
                     </div>
                 </div>
 
-                <div className="field">
-                    <label>氣場設定</label>
-                    <div className="interval-row">
-                        <div className="interval-col">
-                            <span className="sub-label">觸發次數</span>
-                            <input
-                                type="number"
-                                min={0}
-                                value={auraTriggers}
-                                onChange={(e) =>
-                                    setAuraTriggers(Math.max(0, Number(e.target.value)))
-                                }
-                            />
-                        </div>
-                        <div className="interval-col">
-                            <span className="sub-label">氣場時間（分/次）</span>
-                            <input
-                                type="number"
-                                min={0.5}
-                                step={0.5}
-                                value={auraDuration}
-                                onChange={(e) =>
-                                    setAuraDuration(Math.max(0.5, Number(e.target.value)))
-                                }
-                            />
-                        </div>
-                    </div>
-                </div>
+                <AuraFields
+                    triggers={auraTriggers}
+                    onTriggersChange={setAuraTriggers}
+                    duration={auraDuration}
+                    onDurationChange={setAuraDuration}
+                    multiplier={auraMultiplier}
+                    onMultiplierChange={setAuraMultiplier}
+                />
 
-                <div className="field">
-                    <label>氣場倍數</label>
-                    <div className="daily-hours-row">
-                        <input
-                            type="number"
-                            min={1}
-                            step={0.25}
-                            value={auraMultiplier}
-                            onChange={(e) =>
-                                setAuraMultiplier(Math.max(1, Number(e.target.value)))
-                            }
-                        />
-                        <span className="unit-label">倍</span>
-                    </div>
-                </div>
-
-                <div className="field">
-                    <label className="prayer-checkbox-row">
-                        <input
-                            type="checkbox"
-                            checked={hasPrayer}
-                            onChange={(e) => setHasPrayer(e.target.checked)}
-                        />
-                        <span>有祈禱（+0.25 倍）</span>
-                    </label>
-                </div>
+                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
             </div>
 
             {result?.type === "ok" && (
@@ -309,27 +167,12 @@ export default function BaseRateCalculator() {
                     <p className="no-result">{result.msg}</p>
                 ) : (
                     <>
-                        <div className="rate-result-grid">
-                            <div className="rate-grid-cell rate-grid-header" />
-                            <div className="rate-grid-cell rate-grid-header">無祈禱</div>
-                            <div className="rate-grid-cell rate-grid-header prayer-col">有祈禱</div>
-
-                            <div className="rate-grid-cell rate-grid-label">10 分鐘</div>
-                            <div className="rate-grid-cell rate-grid-value">
-                                {formatNumber(result.noPrayer10)}
-                            </div>
-                            <div className="rate-grid-cell rate-grid-value prayer-col">
-                                {formatNumber(result.withPrayer10)}
-                            </div>
-
-                            <div className="rate-grid-cell rate-grid-label">60 分鐘</div>
-                            <div className="rate-grid-cell rate-grid-value">
-                                {formatNumber(result.noPrayer60)}
-                            </div>
-                            <div className="rate-grid-cell rate-grid-value prayer-col">
-                                {formatNumber(result.withPrayer60)}
-                            </div>
-                        </div>
+                        <RateResultGrid
+                            noPrayer10={result.noPrayer10}
+                            noPrayer60={result.noPrayer60}
+                            withPrayer10={result.withPrayer10}
+                            withPrayer60={result.withPrayer60}
+                        />
                         {result.minsToLevelUp > 0 && (
                             <p className="level-up-hint">
                                 以 1× 基礎效率約{" "}
