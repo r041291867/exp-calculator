@@ -1,38 +1,29 @@
-import { useState, useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { getExpToNext } from "../data/expTable";
-import { useLevelExp } from "../hooks/useLevelExp";
+import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatMins } from "../utils/format";
-import LevelExpField from "./shared/LevelExpField";
 import ExpAmountField from "./shared/ExpAmountField";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
 
 const PRAYER_MULT = 1.25;
 
-export default function ExpRateCalculator() {
-    const {
-        currentLevel, currentExp, expInputMode,
-        expToNextLevel, maxCurrentExp, expPercentValue,
-        setCurrentLevel, setCurrentExp, setExpInputMode,
-        handleExpChange,
-    } = useLevelExp();
-
+export default function ExpRateCalculator({
+    currentLevel, currentExp, expToNextLevel,
+}: SharedLevelExp) {
     const {
         totalExp, setTotalExp,
         totalExpInputMode, setTotalExpInputMode,
         totalExpPercentValue,
         handleTotalExpChange,
-    } = useTotalExp(expToNextLevel);
+    } = useTotalExp(expToNextLevel, 100000, "rate");
 
-    const [durationMinutes, setDurationMinutes] = useState(40);
-    const [hasPrayer, setHasPrayer] = useState(false);
+    const [durationMinutes, setDurationMinutes] = useLocalStorage("rate.duration", 40);
+    const [hasPrayer, setHasPrayer] = useLocalStorage("rate.prayer", false);
 
-    const handleLevelChange = (level: number) => {
-        setCurrentLevel(level);
-        setCurrentExp(0);
-        setTotalExp(0);
-    };
+    useEffect(() => { setTotalExp(0); }, [currentLevel]);
 
     const result = useMemo(() => {
         if (durationMinutes <= 0 || totalExp <= 0) return null;
@@ -60,17 +51,6 @@ export default function ExpRateCalculator() {
             </header>
 
             <div className="form-body">
-                <LevelExpField
-                    level={currentLevel}
-                    onLevelChange={handleLevelChange}
-                    exp={currentExp}
-                    onExpChange={handleExpChange}
-                    mode={expInputMode}
-                    onModeChange={setExpInputMode}
-                    maxExp={maxCurrentExp}
-                    expPercent={expPercentValue}
-                />
-
                 <div className="field">
                     <label>時間段（分鐘）</label>
                     <input

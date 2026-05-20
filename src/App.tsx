@@ -1,16 +1,21 @@
+import { useLevelExp } from './hooks/useLevelExp';
+import CharacterPanel from './components/CharacterPanel';
 import Calculator from './components/Calculator';
-import ExpRateCalculator from './components/ExpRateCalculator';
 import AuraCalculator from './components/AuraCalculator';
 import BaseRateCalculator from './components/BaseRateCalculator';
 import './index.css';
 
 export default function App() {
+    const levelExp = useLevelExp();
+
     return (
         <div className="app-wrapper">
-            <Calculator />
-            <ExpRateCalculator />
-            <AuraCalculator />
-            <BaseRateCalculator />
+            <CharacterPanel {...levelExp} />
+            <Calculator {...levelExp} />
+            <div className="bottom-row">
+                <AuraCalculator />
+                <BaseRateCalculator {...levelExp} />
+            </div>
         </div>
     );
 }

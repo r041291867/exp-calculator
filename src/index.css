@@ -102,6 +102,16 @@ input[type="number"] {
     appearance: none;
 }
 
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -123,6 +133,12 @@ select option:disabled {
 .interval-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.aura-fields-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
 }
 
@@ -535,6 +551,134 @@ select option:disabled {
 
 .aura-breakdown-row span:last-child {
     color: #aaa;
+}
+
+/* ── Character panel (shared level/exp) ── */
+.character-panel.card {
+    max-width: 900px;
+    width: 100%;
+    flex: 0 0 100%;
+}
+
+/* ── Bottom row: AuraCalculator + BaseRateCalculator ── */
+.bottom-row {
+    width: 100%;
+    max-width: 900px;
+    flex: 0 0 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bottom-row .card {
+    max-width: none;
+}
+
+@media (min-width: 640px) {
+    .bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ── Calculator card (full-width, table on right on desktop) ── */
+.calculator-card {
+    max-width: 900px;
+    flex: 0 0 100%;
+}
+
+.calculator-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.calculator-left {
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 640px) {
+    .calculator-card {
+        display: flex;
+        flex-direction: column;
+        max-height: 540px;
+    }
+
+    .calculator-layout {
+        flex-direction: row;
+        align-items: stretch;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .calculator-left {
+        flex: 6;
+        min-width: 0;
+        overflow-y: auto;
+    }
+
+    .calculator-right {
+        flex: 4;
+        width: 300px;
+        flex-shrink: 0;
+        border-left: 1px solid #2e2e2e;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .calculator-right .level-table-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-top: none;
+        min-height: 0;
+    }
+
+    .calculator-right .level-table-scroll {
+        flex: 1;
+        min-height: 0;
+    }
+}
+
+.character-panel-body {
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: end;
+}
+
+input[type="number"]:disabled,
+select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ── Stepper buttons (± next to input) ── */
+.stepper-btn {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #999;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    flex-shrink: 0;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+    user-select: none;
+}
+
+.stepper-btn:hover {
+    background: #383838;
+    color: #ccc;
 }
 
 /* ── Field divider (section subheading with lines) ── */

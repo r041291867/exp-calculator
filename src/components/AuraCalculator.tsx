@@ -1,13 +1,14 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 export default function AuraCalculator() {
-    const [totalTime, setTotalTime] = useState(60);
-    const [auraTriggers, setAuraTriggers] = useState(5);
-    const [auraDuration, setAuraDuration] = useState(2);
-    const [auraMultiplier, setAuraMultiplier] = useState(2);
-    const [hasPrayer, setHasPrayer] = useState(false);
+    const [totalTime, setTotalTime] = useLocalStorage("aura.totalTime", 60);
+    const [auraTriggers, setAuraTriggers] = useLocalStorage("aura.triggers", 5);
+    const [auraDuration, setAuraDuration] = useLocalStorage("aura.duration", 2);
+    const [auraMultiplier, setAuraMultiplier] = useLocalStorage("aura.multiplier", 2);
+    const [hasPrayer, setHasPrayer] = useLocalStorage("aura.prayer", false);
 
     const result = useMemo(() => {
         if (totalTime <= 0) return null;
@@ -30,7 +31,7 @@ export default function AuraCalculator() {
         <div className="card">
             <header className="card-header">
                 <span className="header-icon">✨</span>
-                <h1>氣場效率計算</h1>
+                <h1>氣場等效倍率計算</h1>
             </header>
 
             <div className="form-body">
@@ -68,9 +69,7 @@ export default function AuraCalculator() {
                 ) : (
                     <div className="aura-result">
                         <div className="aura-multiplier-row">
-                            <span className="aura-multiplier-value">
-                                ×{result.effective.toFixed(3)}
-                            </span>
+                            <span className="aura-multiplier-value">×{result.effective.toFixed(3)}</span>
                             <span className="aura-multiplier-label">有效倍率</span>
                         </div>
                         <div className="aura-breakdown">

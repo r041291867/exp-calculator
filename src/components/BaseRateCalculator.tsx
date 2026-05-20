@@ -1,47 +1,41 @@
-import { useState, useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { getExpToNext } from "../data/expTable";
-import { useLevelExp } from "../hooks/useLevelExp";
+import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatMins } from "../utils/format";
-import LevelExpField from "./shared/LevelExpField";
 import ExpAmountField from "./shared/ExpAmountField";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
 
-export default function BaseRateCalculator() {
+export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel }: SharedLevelExp) {
     const {
-        currentLevel, currentExp, expInputMode,
-        expToNextLevel, maxCurrentExp, expPercentValue,
-        setCurrentLevel, setCurrentExp, setExpInputMode,
-        handleExpChange,
-    } = useLevelExp();
-
-    const {
-        totalExp, setTotalExp,
-        totalExpInputMode, setTotalExpInputMode,
+        totalExp,
+        setTotalExp,
+        totalExpInputMode,
+        setTotalExpInputMode,
         totalExpPercentValue,
         handleTotalExpChange,
-    } = useTotalExp(expToNextLevel);
+    } = useTotalExp(expToNextLevel, 100000, "base");
 
-    const [durationMinutes, setDurationMinutes] = useState(40);
-    const [hasHottime, setHasHottime] = useState(false);
-    const [hottimeMultiplier, setHottimeMultiplier] = useState(2);
-    const [auraTriggers, setAuraTriggers] = useState(0);
-    const [auraDuration, setAuraDuration] = useState(2);
-    const [auraMultiplier, setAuraMultiplier] = useState(2);
-    const [hasPrayer, setHasPrayer] = useState(false);
+    const [durationMinutes, setDurationMinutes] = useLocalStorage("base.duration", 40);
+    const [hasHottime, setHasHottime] = useLocalStorage("base.hottime", false);
+    const [hottimeMultiplier, setHottimeMultiplier] = useLocalStorage("base.hottimeMult", 2);
+    const [hasAura, setHasAura] = useLocalStorage("base.hasAura", false);
+    const [auraTriggers, setAuraTriggers] = useLocalStorage("base.auraTriggers", 0);
+    const [auraDuration, setAuraDuration] = useLocalStorage("base.auraDuration", 2);
+    const [auraMultiplier, setAuraMultiplier] = useLocalStorage("base.auraMultiplier", 2);
+    const [hasPrayer, setHasPrayer] = useLocalStorage("base.prayer", false);
 
-    const handleLevelChange = (level: number) => {
-        setCurrentLevel(level);
-        setCurrentExp(0);
+    useEffect(() => {
         setTotalExp(0);
-    };
+    }, [currentLevel]);
 
     const result = useMemo(() => {
         if (durationMinutes <= 0 || totalExp <= 0) return null;
 
-        const auraTime = auraDuration * auraTriggers;
+        const auraTime = auraDuration * (hasAura ? auraTriggers : 0);
         if (auraTime > durationMinutes) {
             return {
                 type: "error" as const,
@@ -51,9 +45,16 @@ export default function BaseRateCalculator() {
 
         const hottimeBase = hasHottime ? hottimeMultiplier : 1;
         const auraFraction = auraTime / durationMinutes;
-        const effective = hottimeBase + (auraMultiplier - 1) * auraFraction + (hasPrayer ? 0.25 : 0);
+        const effNoPrayer = hottimeBase + (auraMultiplier - 1) * auraFraction;
+        const effective = effNoPrayer + (hasPrayer ? 0.25 : 0);
 
         const base1xPerMin = totalExp / durationMinutes / effective;
+        const spotPerMin = base1xPerMin * effNoPrayer;
+
+        const spotNoPrayer10 = Math.round(spotPerMin * 10);
+        const spotNoPrayer60 = Math.round(spotPerMin * 60);
+        const spotWithPrayer10 = Math.round(spotPerMin * 1.25 * 10);
+        const spotWithPrayer60 = Math.round(spotPerMin * 1.25 * 60);
 
         const noPrayer10 = Math.round(base1xPerMin * 10);
         const noPrayer60 = Math.round(base1xPerMin * 60);
@@ -61,35 +62,45 @@ export default function BaseRateCalculator() {
         const withPrayer60 = Math.round(base1xPerMin * 1.25 * 60);
 
         const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
-        const minsToLevelUp = remaining > 0 ? Math.ceil(remaining / base1xPerMin) : 0;
+        const minsToLevelUpSpot = remaining > 0 ? Math.ceil(remaining / spotPerMin) : 0;
+        const minsToLevelUpBase = remaining > 0 ? Math.ceil(remaining / base1xPerMin) : 0;
 
-        return { type: "ok" as const, effective, noPrayer10, noPrayer60, withPrayer10, withPrayer60, minsToLevelUp };
+        return {
+            type: "ok" as const,
+            effective,
+            spotNoPrayer10,
+            spotNoPrayer60,
+            spotWithPrayer10,
+            spotWithPrayer60,
+            noPrayer10,
+            noPrayer60,
+            withPrayer10,
+            withPrayer60,
+            minsToLevelUpSpot,
+            minsToLevelUpBase,
+        };
     }, [
-        durationMinutes, totalExp,
-        hasHottime, hottimeMultiplier,
-        auraTriggers, auraDuration, auraMultiplier,
-        hasPrayer, currentLevel, currentExp,
+        durationMinutes,
+        totalExp,
+        hasHottime,
+        hottimeMultiplier,
+        hasAura,
+        auraTriggers,
+        auraDuration,
+        auraMultiplier,
+        hasPrayer,
+        currentLevel,
+        currentExp,
     ]);
 
     return (
         <div className="card">
             <header className="card-header">
-                <span className="header-icon">🔍</span>
-                <h1>基礎經驗回推</h1>
+                <span className="header-icon">⚡</span>
+                <h1>經驗效率計算</h1>
             </header>
 
             <div className="form-body">
-                <LevelExpField
-                    level={currentLevel}
-                    onLevelChange={handleLevelChange}
-                    exp={currentExp}
-                    onExpChange={handleExpChange}
-                    mode={expInputMode}
-                    onModeChange={setExpInputMode}
-                    maxExp={maxCurrentExp}
-                    expPercent={expPercentValue}
-                />
-
                 <div className="field">
                     <label>統計時間（分鐘）</label>
                     <input
@@ -110,7 +121,11 @@ export default function BaseRateCalculator() {
                     onChange={handleTotalExpChange}
                 />
 
-                <div className="field-divider"><span>當時倍率設定</span></div>
+                <div className="field-divider">
+                    <span>倍率設定</span>
+                </div>
+
+                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
 
                 <div className="field">
                     <div className="buff-row">
@@ -129,9 +144,7 @@ export default function BaseRateCalculator() {
                                     min={1}
                                     step={0.25}
                                     value={hottimeMultiplier}
-                                    onChange={(e) =>
-                                        setHottimeMultiplier(Math.max(1, Number(e.target.value)))
-                                    }
+                                    onChange={(e) => setHottimeMultiplier(Math.max(1, Number(e.target.value)))}
                                 />
                                 <span className="unit-label">倍</span>
                             </div>
@@ -139,16 +152,23 @@ export default function BaseRateCalculator() {
                     </div>
                 </div>
 
-                <AuraFields
-                    triggers={auraTriggers}
-                    onTriggersChange={setAuraTriggers}
-                    duration={auraDuration}
-                    onDurationChange={setAuraDuration}
-                    multiplier={auraMultiplier}
-                    onMultiplierChange={setAuraMultiplier}
-                />
+                <div className="field">
+                    <label className="prayer-checkbox-row" style={{ cursor: "pointer" }}>
+                        <input type="checkbox" checked={hasAura} onChange={(e) => setHasAura(e.target.checked)} />
+                        <span>氣場</span>
+                    </label>
+                </div>
 
-                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
+                {hasAura && (
+                    <AuraFields
+                        triggers={auraTriggers}
+                        onTriggersChange={setAuraTriggers}
+                        duration={auraDuration}
+                        onDurationChange={setAuraDuration}
+                        multiplier={auraMultiplier}
+                        onMultiplierChange={setAuraMultiplier}
+                    />
+                )}
             </div>
 
             {result?.type === "ok" && (
@@ -159,8 +179,7 @@ export default function BaseRateCalculator() {
             )}
 
             <div className="rate-result-section">
-                <h2 className="rate-result-title">1× 基礎經驗（回推）</h2>
-
+                <h2 className="rate-result-title">場地效率（含 Hottime / 氣場）</h2>
                 {!result ? (
                     <p className="no-result">請輸入統計時間和經驗值</p>
                 ) : result.type === "error" ? (
@@ -168,15 +187,35 @@ export default function BaseRateCalculator() {
                 ) : (
                     <>
                         <RateResultGrid
+                            noPrayer10={result.spotNoPrayer10}
+                            noPrayer60={result.spotNoPrayer60}
+                            withPrayer10={result.spotWithPrayer10}
+                            withPrayer60={result.spotWithPrayer60}
+                        />
+                        {result.minsToLevelUpSpot > 0 && (
+                            <p className="level-up-hint">
+                                以目前場地效率約 <strong>{formatMins(result.minsToLevelUpSpot)}</strong> 升級（無祈禱）
+                            </p>
+                        )}
+                    </>
+                )}
+            </div>
+
+            <div className="rate-result-section">
+                <h2 className="rate-result-title">1× 基礎效率（回推）</h2>
+                {!result ? (
+                    <p className="no-result">請輸入統計時間和經驗值</p>
+                ) : result.type === "error" ? null : (
+                    <>
+                        <RateResultGrid
                             noPrayer10={result.noPrayer10}
                             noPrayer60={result.noPrayer60}
                             withPrayer10={result.withPrayer10}
                             withPrayer60={result.withPrayer60}
                         />
-                        {result.minsToLevelUp > 0 && (
+                        {result.minsToLevelUpBase > 0 && (
                             <p className="level-up-hint">
-                                以 1× 基礎效率約{" "}
-                                <strong>{formatMins(result.minsToLevelUp)}</strong> 升級
+                                以 1× 基礎效率約 <strong>{formatMins(result.minsToLevelUpBase)}</strong> 升級
                             </p>
                         )}
                     </>

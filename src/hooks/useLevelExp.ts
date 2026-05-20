@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { getExpToNext } from "../data/expTable";
+import { useLocalStorage } from "./useLocalStorage";
 
 export function useLevelExp() {
-    const [currentLevel, setCurrentLevel] = useState(1);
-    const [currentExp, setCurrentExp] = useState(0);
-    const [expInputMode, setExpInputMode] = useState<"number" | "percent">("number");
+    const [currentLevel, setCurrentLevel] = useLocalStorage("char.level", 1);
+    const [currentExp, setCurrentExp] = useLocalStorage("char.exp", 0);
+    const [expInputMode, setExpInputMode] = useLocalStorage<"number" | "percent">("char.expMode", "number");
 
     const expToNextLevel = useMemo(() => getExpToNext(currentLevel), [currentLevel]);
     const maxCurrentExp = useMemo(() => expToNextLevel - 1, [expToNextLevel]);
@@ -30,3 +31,5 @@ export function useLevelExp() {
         handleExpChange,
     };
 }
+
+export type SharedLevelExp = ReturnType<typeof useLevelExp>;
