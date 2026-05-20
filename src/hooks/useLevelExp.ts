@@ -12,7 +12,7 @@ export function useLevelExp() {
 
     const expPercentValue = useMemo(() => {
         if (maxCurrentExp <= 0) return 0;
-        return Math.round((currentExp / maxCurrentExp) * 1000) / 10;
+        return Math.round((currentExp / maxCurrentExp) * 10000) / 100;
     }, [currentExp, maxCurrentExp]);
 
     const handleExpChange = (raw: string) => {

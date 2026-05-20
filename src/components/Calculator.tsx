@@ -130,7 +130,7 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
                             <p className="hint">選擇適合的時間區間，例如組隊任務通常需要更長時間</p>
                         </div>
 
-                        <div className="field interval-row">
+                        <div className="field">
                             <div className="daily-hours-row">
                                 <span className="unit-label">每天練功</span>
                                 <button
@@ -155,7 +155,7 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
                                 >
                                     +
                                 </button>
-                                <span className="unit-label">小時</span>
+                                <span className="unit-label">小時&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             </div>
                         </div>
                     </div>

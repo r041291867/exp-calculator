@@ -28,13 +28,14 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     const [auraDuration, setAuraDuration] = useLocalStorage("base.auraDuration", 2);
     const [auraMultiplier, setAuraMultiplier] = useLocalStorage("base.auraMultiplier", 2);
     const [hasPrayer, setHasPrayer] = useLocalStorage("base.prayer", false);
+    const [onlyEffectiveMult, setOnlyEffectiveMult] = useLocalStorage("base.onlyEffMult", false);
 
     useEffect(() => {
         setTotalExp(0);
     }, [currentLevel]);
 
     const result = useMemo(() => {
-        if (durationMinutes <= 0 || totalExp <= 0) return null;
+        if (durationMinutes <= 0) return null;
 
         const auraTime = auraDuration * (hasAura ? auraTriggers : 0);
         if (auraTime > durationMinutes) {
@@ -48,6 +49,10 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         const auraFraction = auraTime / durationMinutes;
         const effNoPrayer = hottimeBase + (auraMultiplier - 1) * auraFraction;
         const effective = effNoPrayer + (hasPrayer ? 0.25 : 0);
+
+        if (onlyEffectiveMult || totalExp <= 0) {
+            return { type: "mult-only" as const, effective };
+        }
 
         const base1xPerMin = totalExp / durationMinutes / effective;
         const spotPerMin = base1xPerMin * effNoPrayer;
@@ -64,6 +69,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
 
         const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
         const minsToLevelUpSpot = remaining > 0 ? Math.ceil(remaining / spotPerMin) : 0;
+        const minsToLevelUpSpotPrayer = remaining > 0 ? Math.ceil(remaining / (spotPerMin * 1.25)) : 0;
         const minsToLevelUpBase = remaining > 0 ? Math.ceil(remaining / base1xPerMin) : 0;
 
         return {
@@ -78,6 +84,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
             withPrayer10,
             withPrayer60,
             minsToLevelUpSpot,
+            minsToLevelUpSpotPrayer,
             minsToLevelUpBase,
         };
     }, [
@@ -90,13 +97,25 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         auraDuration,
         auraMultiplier,
         hasPrayer,
+        onlyEffectiveMult,
         currentLevel,
         currentExp,
     ]);
 
     return (
-        <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析">
+        <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析" className="calculator-card">
             <div className="form-body">
+                <div className="field">
+                    <label className="prayer-checkbox-row" style={{ cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            checked={onlyEffectiveMult}
+                            onChange={(e) => setOnlyEffectiveMult(e.target.checked)}
+                        />
+                        <span>僅計算等效倍率</span>
+                    </label>
+                </div>
+
                 <div className="field">
                     <label>統計時間（分鐘）</label>
                     <input
@@ -108,15 +127,17 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                     />
                 </div>
 
-                <ExpAmountField
-                    labelBase="統計期間獲得經驗"
-                    currentLevel={currentLevel}
-                    value={totalExp}
-                    percentValue={totalExpPercentValue}
-                    mode={totalExpInputMode}
-                    onModeChange={setTotalExpInputMode}
-                    onChange={handleTotalExpChange}
-                />
+                {!onlyEffectiveMult && (
+                    <ExpAmountField
+                        labelBase="統計期間獲得經驗"
+                        currentLevel={currentLevel}
+                        value={totalExp}
+                        percentValue={totalExpPercentValue}
+                        mode={totalExpInputMode}
+                        onModeChange={setTotalExpInputMode}
+                        onChange={handleTotalExpChange}
+                    />
+                )}
 
                 <div className="field-divider">
                     <span>倍率設定</span>
@@ -169,56 +190,64 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                 )}
             </div>
 
-            {result?.type === "ok" && (
+            {(result?.type === "ok" || result?.type === "mult-only") && (
                 <div className="effective-mult-bar">
                     <span className="effective-mult-label">計算有效倍率</span>
                     <span className="effective-mult-value">×{result.effective.toFixed(3)}</span>
                 </div>
             )}
 
-            <div className="rate-result-section">
-                <h2 className="rate-result-title">場地效率（含 Hottime / 氣場）</h2>
-                {!result ? (
-                    <p className="no-result">請輸入統計時間和經驗值</p>
-                ) : result.type === "error" ? (
-                    <p className="no-result">{result.msg}</p>
-                ) : (
-                    <>
-                        <RateResultGrid
-                            noPrayer10={result.spotNoPrayer10}
-                            noPrayer60={result.spotNoPrayer60}
-                            withPrayer10={result.spotWithPrayer10}
-                            withPrayer60={result.spotWithPrayer60}
-                        />
-                        {result.minsToLevelUpSpot > 0 && (
-                            <p className="level-up-hint">
-                                以目前場地效率約 <strong>{formatMins(result.minsToLevelUpSpot)}</strong> 升級（無祈禱）
-                            </p>
+            {!onlyEffectiveMult && (
+                <>
+                    <div className="rate-result-section">
+                        <h2 className="rate-result-title">場地效率（含 Hottime / 氣場）</h2>
+                        {!result ? (
+                            <p className="no-result">請輸入統計時間和經驗值</p>
+                        ) : result.type === "error" ? (
+                            <p className="no-result">{result.msg}</p>
+                        ) : result.type === "mult-only" ? (
+                            <p className="no-result">請輸入統計期間獲得經驗</p>
+                        ) : (
+                            <>
+                                <RateResultGrid
+                                    noPrayer10={result.spotNoPrayer10}
+                                    noPrayer60={result.spotNoPrayer60}
+                                    withPrayer10={result.spotWithPrayer10}
+                                    withPrayer60={result.spotWithPrayer60}
+                                />
+                                {result.minsToLevelUpSpot > 0 && (
+                                    <p className="level-up-hint">
+                                        以目前場地效率約 <strong>{formatMins(result.minsToLevelUpSpot)}</strong>{" "}
+                                        升級（無祈禱）／<strong>{formatMins(result.minsToLevelUpSpotPrayer)}</strong>
+                                        （有祈禱）
+                                    </p>
+                                )}
+                            </>
                         )}
-                    </>
-                )}
-            </div>
+                    </div>
 
-            <div className="rate-result-section">
-                <h2 className="rate-result-title">1× 基礎效率（回推）</h2>
-                {!result ? (
-                    <p className="no-result">請輸入統計時間和經驗值</p>
-                ) : result.type === "error" ? null : (
-                    <>
-                        <RateResultGrid
-                            noPrayer10={result.noPrayer10}
-                            noPrayer60={result.noPrayer60}
-                            withPrayer10={result.withPrayer10}
-                            withPrayer60={result.withPrayer60}
-                        />
-                        {result.minsToLevelUpBase > 0 && (
-                            <p className="level-up-hint">
-                                以 1× 基礎效率約 <strong>{formatMins(result.minsToLevelUpBase)}</strong> 升級
-                            </p>
+                    <div className="rate-result-section">
+                        <h2 className="rate-result-title">1× 基礎效率（回推）</h2>
+                        {!result ? (
+                            <p className="no-result">請輸入統計時間和經驗值</p>
+                        ) : result.type === "error" ? null : result.type === "mult-only" ? null : (
+                            <>
+                                <RateResultGrid
+                                    noPrayer10={result.noPrayer10}
+                                    noPrayer60={result.noPrayer60}
+                                    withPrayer10={result.withPrayer10}
+                                    withPrayer60={result.withPrayer60}
+                                />
+                                {result.minsToLevelUpBase > 0 && (
+                                    <p className="level-up-hint">
+                                        以 1× 基礎效率約 <strong>{formatMins(result.minsToLevelUpBase)}</strong> 升級
+                                    </p>
+                                )}
+                            </>
                         )}
-                    </>
-                )}
-            </div>
+                    </div>
+                </>
+            )}
         </CollapsibleCard>
     );
 }

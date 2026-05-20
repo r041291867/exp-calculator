@@ -11,12 +11,12 @@ import CollapsibleCard from "./shared/CollapsibleCard";
 
 const PRAYER_MULT = 1.25;
 
-export default function ExpRateCalculator({
-    currentLevel, currentExp, expToNextLevel,
-}: SharedLevelExp) {
+export default function ExpRateCalculator({ currentLevel, currentExp, expToNextLevel }: SharedLevelExp) {
     const {
-        totalExp, setTotalExp,
-        totalExpInputMode, setTotalExpInputMode,
+        totalExp,
+        setTotalExp,
+        totalExpInputMode,
+        setTotalExpInputMode,
         totalExpPercentValue,
         handleTotalExpChange,
     } = useTotalExp(expToNextLevel, 100000, "rate");
@@ -24,14 +24,14 @@ export default function ExpRateCalculator({
     const [durationMinutes, setDurationMinutes] = useLocalStorage("rate.duration", 40);
     const [hasPrayer, setHasPrayer] = useLocalStorage("rate.prayer", false);
 
-    useEffect(() => { setTotalExp(0); }, [currentLevel]);
+    useEffect(() => {
+        setTotalExp(0);
+    }, [currentLevel]);
 
     const result = useMemo(() => {
         if (durationMinutes <= 0 || totalExp <= 0) return null;
 
-        const basePerMin = hasPrayer
-            ? totalExp / PRAYER_MULT / durationMinutes
-            : totalExp / durationMinutes;
+        const basePerMin = hasPrayer ? totalExp / PRAYER_MULT / durationMinutes : totalExp / durationMinutes;
 
         const noPrayer10 = Math.round(basePerMin * 10);
         const noPrayer60 = Math.round(basePerMin * 60);
@@ -68,11 +68,7 @@ export default function ExpRateCalculator({
                     onChange={handleTotalExpChange}
                 />
 
-                <PrayerCheckbox
-                    checked={hasPrayer}
-                    onChange={setHasPrayer}
-                    label="測量期間有使用祈禱（經驗 ×1.25）"
-                />
+                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} label="測量期間有使用祈禱（經驗 ×1.25）" />
             </div>
 
             <div className="rate-result-section">
@@ -87,9 +83,7 @@ export default function ExpRateCalculator({
                         />
                         {result.minsToLevelUp > 0 && (
                             <p className="level-up-hint">
-                                以目前效率約{" "}
-                                <strong>{formatMins(result.minsToLevelUp)}</strong>{" "}
-                                升級（無祈禱）
+                                以目前效率約 <strong>{formatMins(result.minsToLevelUp)}</strong> 升級（無祈禱）
                             </p>
                         )}
                     </>

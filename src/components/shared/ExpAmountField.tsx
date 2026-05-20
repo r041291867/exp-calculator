@@ -40,7 +40,7 @@ export default function ExpAmountField({
             <input
                 type="number"
                 min={0}
-                step={mode === "percent" ? 0.1 : 1}
+                step={mode === "percent" ? 0.01 : 1}
                 value={mode === "percent" ? (percentValue || "") : (value || "")}
                 onChange={(e) => onChange(e.target.value)}
             />

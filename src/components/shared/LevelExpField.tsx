@@ -56,7 +56,7 @@ export default function LevelExpField({
                     type="number"
                     min={0}
                     max={mode === "percent" ? 100 : maxExp}
-                    step={mode === "percent" ? 0.1 : 1}
+                    step={mode === "percent" ? 0.01 : 1}
                     value={mode === "percent" ? expPercent : exp}
                     onChange={(e) => onExpChange(e.target.value)}
                 />

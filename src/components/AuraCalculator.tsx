@@ -6,7 +6,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 
 export default function AuraCalculator() {
     const [totalTime, setTotalTime] = useLocalStorage("aura.totalTime", 60);
-    const [auraTriggers, setAuraTriggers] = useLocalStorage("aura.triggers", 5);
+    const [auraTriggers, setAuraTriggers] = useLocalStorage("aura.triggers", 15);
     const [auraDuration, setAuraDuration] = useLocalStorage("aura.duration", 2);
     const [auraMultiplier, setAuraMultiplier] = useLocalStorage("aura.multiplier", 2);
     const [hasPrayer, setHasPrayer] = useLocalStorage("aura.prayer", false);

@@ -10,7 +10,7 @@ export function useTotalExp(expToNextLevel: number, initialValue = 100000, keyPr
 
     const totalExpPercentValue = useMemo(() => {
         if (expToNextLevel <= 0) return 0;
-        return Math.round((totalExp / expToNextLevel) * 1000) / 10;
+        return Math.round((totalExp / expToNextLevel) * 10000) / 100;
     }, [totalExp, expToNextLevel]);
 
     const handleTotalExpChange = (raw: string) => {
