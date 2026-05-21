@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 interface Props {
@@ -6,22 +7,32 @@ interface Props {
     title: string;
     className?: string;
     children: React.ReactNode;
+    collapsed?: boolean;
+    onCollapsedChange?: (v: boolean) => void;
 }
 
-export default function CollapsibleCard({ storageKey, icon, title, className = "", children }: Props) {
-    const [collapsed, setCollapsed] = useLocalStorage(storageKey, false);
+const CollapsibleCard = forwardRef<HTMLDivElement, Props>(function CollapsibleCard(
+    { storageKey, icon, title, className = "", children, collapsed: externalCollapsed, onCollapsedChange },
+    ref,
+) {
+    const [internalCollapsed, setInternalCollapsed] = useLocalStorage(storageKey, false);
+
+    const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
+    const setCollapsed = onCollapsedChange ?? setInternalCollapsed;
 
     return (
-        <div className={`card${className ? ` ${className}` : ""}${collapsed ? " card-collapsed" : ""}`}>
+        <div ref={ref} className={`card${className ? ` ${className}` : ""}${isCollapsed ? " card-collapsed" : ""}`}>
             <header
                 className="card-header card-header-toggle"
-                onClick={() => setCollapsed((v) => !v)}
+                onClick={() => setCollapsed(!isCollapsed)}
             >
                 <span className="header-icon">{icon}</span>
                 <h1>{title}</h1>
-                <span className="collapse-chevron">{collapsed ? "›" : "‹"}</span>
+                <span className="collapse-chevron">{isCollapsed ? "›" : "‹"}</span>
             </header>
-            {!collapsed && children}
+            {!isCollapsed && children}
         </div>
     );
-}
+});
+
+export default CollapsibleCard;

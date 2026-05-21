@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { EXP_TABLE, getCumulativeExp } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -33,8 +33,16 @@ function formatByDailyHours(totalMinutes: number, dailyHours: number): string {
     return timePart ? `${fullDays}天${timePart}` : `${fullDays}天`;
 }
 
-export default function Calculator({ currentLevel, currentExp }: SharedLevelExp) {
+export interface CalcHandle {
+    activate(mins: number, exp: number): void;
+}
+
+const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
+    { currentLevel, currentExp },
+    ref,
+) {
     const [calcMode, setCalcMode] = useLocalStorage<"days" | "daily">("calc.mode", "days");
+    const [collapsed, setCollapsed] = useLocalStorage("calc.collapsed", false);
     const [targetLevel, setTargetLevel] = useLocalStorage("calc.targetLevel", 10);
     const [intervalMinutes, setIntervalMinutes] = useLocalStorage("calc.interval", 10);
     const [expPerInterval, setExpPerInterval] = useLocalStorage("calc.expPerInterval", 1000);
@@ -42,6 +50,19 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
     const [startDate, setStartDate] = useLocalStorage("calc.startDate", getTodayStr());
     const [endDate, setEndDate] = useLocalStorage("calc.endDate", "");
     const [hasCalculated, setHasCalculated] = useState(false);
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    useImperativeHandle(ref, () => ({
+        activate(mins: number, exp: number) {
+            setIntervalMinutes(mins);
+            setExpPerInterval(exp);
+            setCollapsed(false);
+            setHasCalculated(false);
+            setTimeout(() => {
+                cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }, 50);
+        },
+    }));
 
     useEffect(() => {
         setHasCalculated(false);
@@ -84,7 +105,15 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
     }
 
     return (
-        <CollapsibleCard storageKey="calc.collapsed" icon="📊" title="升級時間計算" className="calculator-card">
+        <CollapsibleCard
+            ref={cardRef}
+            storageKey="calc.collapsed"
+            collapsed={collapsed}
+            onCollapsedChange={setCollapsed}
+            icon="📊"
+            title="升級時間計算"
+            className="calculator-card"
+        >
             <div className="calc-mode-tabs">
                 <button className={calcMode === "days" ? "active" : ""} onClick={() => switchMode("days")}>
                     預估天數
@@ -287,4 +316,6 @@ export default function Calculator({ currentLevel, currentExp }: SharedLevelExp)
             </div>
         </CollapsibleCard>
     );
-}
+});
+
+export default Calculator;

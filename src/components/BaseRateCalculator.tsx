@@ -10,7 +10,11 @@ import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
 import CollapsibleCard from "./shared/CollapsibleCard";
 
-export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel }: SharedLevelExp) {
+interface BaseRateProps extends SharedLevelExp {
+    onRateClick?: (mins: number, exp: number) => void;
+}
+
+export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel, onRateClick }: BaseRateProps) {
     const {
         totalExp,
         setTotalExp,
@@ -214,6 +218,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                                     noPrayer60={result.spotNoPrayer60}
                                     withPrayer10={result.spotWithPrayer10}
                                     withPrayer60={result.spotWithPrayer60}
+                                    onCellClick={onRateClick}
                                 />
                                 {result.minsToLevelUpSpot > 0 && (
                                     <p className="level-up-hint">
@@ -237,6 +242,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                                     noPrayer60={result.noPrayer60}
                                     withPrayer10={result.withPrayer10}
                                     withPrayer60={result.withPrayer60}
+                                    onCellClick={onRateClick}
                                 />
                                 {result.minsToLevelUpBase > 0 && (
                                     <p className="level-up-hint">
