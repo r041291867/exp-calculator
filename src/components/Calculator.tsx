@@ -37,10 +37,7 @@ export interface CalcHandle {
     activate(mins: number, exp: number): void;
 }
 
-const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
-    { currentLevel, currentExp },
-    ref,
-) {
+const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ currentLevel, currentExp }, ref) {
     const [calcMode, setCalcMode] = useLocalStorage<"days" | "daily">("calc.mode", "days");
     const [collapsed, setCollapsed] = useLocalStorage("calc.collapsed", false);
     const [targetLevel, setTargetLevel] = useLocalStorage("calc.targetLevel", 10);
@@ -116,10 +113,10 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
         >
             <div className="calc-mode-tabs">
                 <button className={calcMode === "days" ? "active" : ""} onClick={() => switchMode("days")}>
-                    預估天數
+                    升等要幾天
                 </button>
                 <button className={calcMode === "daily" ? "active" : ""} onClick={() => switchMode("daily")}>
-                    每日目標
+                    每天要練多少
                 </button>
             </div>
 
@@ -225,7 +222,9 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
                             <button
                                 className="stepper-btn"
                                 onClick={() => setDailyHours((h) => Math.max(0.5, +(h - 0.5).toFixed(1)))}
-                            >−</button>
+                            >
+                                −
+                            </button>
                             <input
                                 type="number"
                                 min={0.5}
@@ -239,7 +238,9 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
                             <button
                                 className="stepper-btn"
                                 onClick={() => setDailyHours((h) => Math.min(24, +(h + 0.5).toFixed(1)))}
-                            >+</button>
+                            >
+                                +
+                            </button>
                             <span className="unit-label">小時</span>
                         </div>
                     </div>
@@ -275,43 +276,41 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator(
                     ) : (
                         <p className="no-result">請選擇高於目前等級的目標等級</p>
                     )
+                ) : !hasCalculated ? (
+                    <p className="no-result">點擊計算以查看結果</p>
+                ) : remaining === null ? (
+                    <p className="no-result">請選擇高於目前等級的目標等級</p>
+                ) : !dailyResult ? (
+                    <p className="no-result">請輸入開始及結束日期</p>
+                ) : "error" in dailyResult ? (
+                    <p className="no-result">{dailyResult.error}</p>
                 ) : (
-                    !hasCalculated ? (
-                        <p className="no-result">點擊計算以查看結果</p>
-                    ) : remaining === null ? (
-                        <p className="no-result">請選擇高於目前等級的目標等級</p>
-                    ) : !dailyResult ? (
-                        <p className="no-result">請輸入開始及結束日期</p>
-                    ) : "error" in dailyResult ? (
-                        <p className="no-result">{dailyResult.error}</p>
-                    ) : (
-                        <div className="result-items">
-                            <div className="result-item">
-                                <span className="result-value">{formatNumber(dailyResult.remaining)}</span>
-                                <span className="result-label">還需經驗值</span>
-                            </div>
-                            <div className="divider" />
-                            <div className="result-item">
-                                <span className="result-value">{dailyResult.days}</span>
-                                <span className="result-label">距離截止天數</span>
-                            </div>
-                            <div className="divider" />
-                            <div className="result-item">
-                                <span className="result-value">{formatNumber(dailyResult.expPerDay)}</span>
-                                <span className="result-label">每天需要經驗值</span>
-                            </div>
-                            <div className="divider" />
-                            <div className="result-item">
-                                <span className="result-value result-value--sm">
-                                    {formatMins(Math.ceil(dailyResult.minutesPerDay))}
-                                </span>
-                                <span className="result-label">每天需要練功時間</span>
-                                <span className="result-sublabel">
-                                    每 {intervalMinutes} 分鐘 {formatNumber(expPerInterval)} 經驗
-                                </span>
-                            </div>
+                    <div className="result-items">
+                        <div className="result-item">
+                            <span className="result-value">{formatNumber(dailyResult.remaining)}</span>
+                            <span className="result-label">還需經驗值</span>
                         </div>
-                    )
+                        <div className="divider" />
+                        <div className="result-item">
+                            <span className="result-value">{dailyResult.days}</span>
+                            <span className="result-label">距離截止天數</span>
+                        </div>
+                        <div className="divider" />
+                        <div className="result-item">
+                            <span className="result-value">{formatNumber(dailyResult.expPerDay)}</span>
+                            <span className="result-label">每天需要經驗值</span>
+                        </div>
+                        <div className="divider" />
+                        <div className="result-item">
+                            <span className="result-value result-value--sm">
+                                {formatMins(Math.ceil(dailyResult.minutesPerDay))}
+                            </span>
+                            <span className="result-label">每天需要練功時間</span>
+                            <span className="result-sublabel">
+                                每 {intervalMinutes} 分鐘 {formatNumber(expPerInterval)} 經驗
+                            </span>
+                        </div>
+                    </div>
                 )}
             </div>
         </CollapsibleCard>
