@@ -114,7 +114,8 @@ body {
 }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="date"] {
     width: 100%;
     background: #242424;
     border: 1px solid #333;
@@ -138,6 +139,40 @@ input[type="number"] {
     -moz-appearance: textfield;
 }
 
+/* ── Custom checkbox ── */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #242424;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+
+input[type="checkbox"]:checked {
+    background: #f0f0f0;
+    border-color: #f0f0f0;
+}
+
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 8px;
+    height: 5px;
+    border-left: 2px solid #111;
+    border-bottom: 2px solid #111;
+    transform: rotate(-45deg);
+}
+
 select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -147,8 +182,15 @@ select {
 }
 
 select:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="date"]:focus {
     border-color: #555;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.55);
+    cursor: pointer;
+    padding: 0;
 }
 
 select option:disabled {
@@ -207,6 +249,8 @@ select option:disabled {
     border-radius: 6px;
     padding: 2px;
     gap: 2px;
+    cursor: pointer;
+    user-select: none;
 }
 
 .input-mode-switch button {
@@ -375,13 +419,13 @@ select option:disabled {
 .level-table thead th {
     position: sticky;
     top: 0;
-    background: #161616;
+    background: #1c1c1c;
     z-index: 1;
     text-align: left;
     font-size: 11px;
     font-weight: 400;
     color: #555;
-    padding: 0 0 8px;
+    padding: 8px 0 8px;
     border-bottom: 1px solid #2a2a2a;
 }
 
@@ -440,11 +484,7 @@ select option:disabled {
 }
 
 .prayer-checkbox-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #f0f0f0;
-    cursor: pointer;
-    flex-shrink: 0;
+    margin-top: 1px;
 }
 
 .prayer-checkbox-row span {
@@ -607,63 +647,52 @@ select option:disabled {
     }
 }
 
-/* ── Calculator card (full-width, table on right on desktop) ── */
+/* ── Full-width card ── */
+.card-full {
+    max-width: 900px;
+    flex: 0 0 100%;
+}
+
+/* ── Calculator card (full-width) ── */
 .calculator-card {
     max-width: 900px;
     flex: 0 0 100%;
 }
 
-.calculator-layout {
+/* ── Calc mode tabs ── */
+.calc-mode-tabs {
     display: flex;
-    flex-direction: column;
+    padding: 0 22px;
+    border-bottom: 1px solid #2e2e2e;
 }
 
-.calculator-left {
-    display: flex;
-    flex-direction: column;
+.calc-mode-tabs button {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 16px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
 }
 
-@media (min-width: 640px) {
-    .calculator-card {
-        display: flex;
-        flex-direction: column;
-        max-height: 540px;
-    }
+.calc-mode-tabs button.active {
+    color: #e0e0e0;
+    border-bottom-color: #f0c060;
+}
 
-    .calculator-layout {
-        flex-direction: row;
-        align-items: stretch;
-        flex: 1;
-        min-height: 0;
-    }
+.calc-mode-tabs button:hover:not(.active) {
+    color: #888;
+}
 
-    .calculator-left {
-        flex: 6;
-        min-width: 0;
-        overflow-y: auto;
-    }
-
-    .calculator-right {
-        flex: 4;
-        width: 300px;
-        flex-shrink: 0;
-        border-left: 1px solid #2e2e2e;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .calculator-right .level-table-section {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        border-top: none;
-        min-height: 0;
-    }
-
-    .calculator-right .level-table-scroll {
-        flex: 1;
-        min-height: 0;
-    }
+/* ── Result value (smaller variant for long text) ── */
+.result-value--sm {
+    font-size: 28px !important;
 }
 
 .character-panel-body {
@@ -675,6 +704,7 @@ select option:disabled {
 }
 
 input[type="number"]:disabled,
+input[type="date"]:disabled,
 select:disabled {
     opacity: 0.45;
     cursor: not-allowed;
@@ -776,4 +806,121 @@ select:disabled {
 ::-webkit-scrollbar-thumb {
     background: #333;
     border-radius: 3px;
+}
+
+/* ── Level table dialog ── */
+dialog {
+    padding: 0;
+    border: none;
+    outline: none;
+}
+
+.level-table-dialog {
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    border-radius: 14px;
+    color: #e0e0e0;
+    max-width: 480px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+
+.level-table-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.level-table-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2e2e2e;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.dialog-close-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+
+.dialog-close-btn:hover {
+    color: #ccc;
+}
+
+.level-table-dialog-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0 20px 20px;
+    scrollbar-width: thin;
+    scrollbar-color: #333 #1c1c1c;
+}
+
+.level-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.level-table th {
+    position: sticky;
+    top: 0;
+    background: #1c1c1c;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #2e2e2e;
+}
+
+.level-table td {
+    padding: 7px 10px;
+    color: #aaa;
+    border-bottom: 1px solid #232323;
+}
+
+.level-table tr:last-child td {
+    border-bottom: none;
+}
+
+.level-table .current-level-row td {
+    color: #f0c060;
+    background: rgba(240, 192, 96, 0.08);
+}
+
+.text-right {
+    text-align: right;
+}
+
+/* ── Level table icon button in card header ── */
+.level-table-icon-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.level-table-icon-btn:hover {
+    opacity: 1;
 }

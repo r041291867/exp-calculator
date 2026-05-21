@@ -37,19 +37,12 @@ export default function LevelExpField({
                         目前經驗值&nbsp;
                         {mode === "number" ? `(0 - ${formatNumber(maxExp)})` : "(0 - 100%)"}
                     </label>
-                    <div className="input-mode-switch">
-                        <button
-                            className={mode === "number" ? "active" : ""}
-                            onClick={() => onModeChange("number")}
-                        >
-                            數值
-                        </button>
-                        <button
-                            className={mode === "percent" ? "active" : ""}
-                            onClick={() => onModeChange("percent")}
-                        >
-                            %
-                        </button>
+                    <div
+                        className="input-mode-switch"
+                        onClick={() => onModeChange(mode === "number" ? "percent" : "number")}
+                    >
+                        <button className={mode === "number" ? "active" : ""}>數值</button>
+                        <button className={mode === "percent" ? "active" : ""}>%</button>
                     </div>
                 </div>
                 <input

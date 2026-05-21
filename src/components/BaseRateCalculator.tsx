@@ -20,11 +20,11 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         handleTotalExpChange,
     } = useTotalExp(expToNextLevel, 100000, "base");
 
-    const [durationMinutes, setDurationMinutes] = useLocalStorage("base.duration", 40);
+    const [durationMinutes, setDurationMinutes] = useLocalStorage("base.duration", 60);
     const [hasHottime, setHasHottime] = useLocalStorage("base.hottime", false);
     const [hottimeMultiplier, setHottimeMultiplier] = useLocalStorage("base.hottimeMult", 2);
     const [hasAura, setHasAura] = useLocalStorage("base.hasAura", false);
-    const [auraTriggers, setAuraTriggers] = useLocalStorage("base.auraTriggers", 0);
+    const [auraTriggers, setAuraTriggers] = useLocalStorage("base.auraTriggers", 15);
     const [auraDuration, setAuraDuration] = useLocalStorage("base.auraDuration", 2);
     const [auraMultiplier, setAuraMultiplier] = useLocalStorage("base.auraMultiplier", 2);
     const [hasPrayer, setHasPrayer] = useLocalStorage("base.prayer", false);
@@ -103,10 +103,10 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     ]);
 
     return (
-        <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析" className="calculator-card">
+        <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析" className="card-full">
             <div className="form-body">
                 <div className="field">
-                    <label className="prayer-checkbox-row" style={{ cursor: "pointer" }}>
+                    <label className="prayer-checkbox-row">
                         <input
                             type="checkbox"
                             checked={onlyEffectiveMult}
@@ -172,7 +172,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                 </div>
 
                 <div className="field">
-                    <label className="prayer-checkbox-row" style={{ cursor: "pointer" }}>
+                    <label className="prayer-checkbox-row">
                         <input type="checkbox" checked={hasAura} onChange={(e) => setHasAura(e.target.checked)} />
                         <span>氣場</span>
                     </label>
