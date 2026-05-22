@@ -5,7 +5,7 @@ import { useLocalStorage } from "./useLocalStorage";
 export function useLevelExp() {
     const [currentLevel, setCurrentLevel] = useLocalStorage("char.level", 1);
     const [currentExp, setCurrentExp] = useLocalStorage("char.exp", 0);
-    const [expInputMode, setExpInputMode] = useLocalStorage<"number" | "percent">("char.expMode", "number");
+    const [expInputMode, setExpInputMode] = useLocalStorage<"number" | "percent">("char.expMode", "percent");
 
     const expToNextLevel = useMemo(() => getExpToNext(currentLevel), [currentLevel]);
     const maxCurrentExp = useMemo(() => expToNextLevel - 1, [expToNextLevel]);

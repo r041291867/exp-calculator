@@ -5,7 +5,7 @@ export function useTotalExp(expToNextLevel: number, initialValue = 100000, keyPr
     const [totalExp, setTotalExp] = useLocalStorage(`${keyPrefix}.totalExp`, initialValue);
     const [totalExpInputMode, setTotalExpInputMode] = useLocalStorage<"number" | "percent">(
         `${keyPrefix}.totalExpMode`,
-        "number",
+        "percent",
     );
 
     const totalExpPercentValue = useMemo(() => {
