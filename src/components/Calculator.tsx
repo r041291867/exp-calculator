@@ -180,7 +180,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                 )}
 
                 <div className="field">
-                    <label>時間區間設定</label>
+                    <label>練功效率設定</label>
                     <div className="interval-row">
                         <div className="interval-col">
                             <span className="sub-label">時間區間（分鐘）</span>
@@ -199,7 +199,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                             </select>
                         </div>
                         <div className="interval-col">
-                            <span className="sub-label">該時間經驗值</span>
+                            <span className="sub-label">區間內累計經驗</span>
                             <input
                                 type="number"
                                 min={1}
@@ -260,9 +260,19 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                         <p className="no-result">點擊計算以查看結果</p>
                     ) : daysResult ? (
                         <div className="result-items">
-                            <div className="result-item">
-                                <span className="result-value">{formatNumber(daysResult.remaining)}</span>
-                                <span className="result-label">還需經驗值</span>
+                            <div className="interval-row">
+                                <div className="result-item">
+                                    <span className="result-value result-value--sm">
+                                        {formatNumber(daysResult.remaining)}
+                                    </span>
+                                    <span className="result-label">所需經驗值</span>
+                                </div>
+                                <div className="result-item">
+                                    <span className="result-value result-value--sm">
+                                        {formatMins(Math.ceil(daysResult.totalMinutes))}
+                                    </span>
+                                    <span className="result-label">升級所需時間</span>
+                                </div>
                             </div>
                             <div className="divider" />
                             <div className="result-item">
@@ -270,7 +280,6 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                                     {formatByDailyHours(daysResult.totalMinutes, dailyHours)}
                                 </span>
                                 <span className="result-label">預估天數</span>
-                                <span className="result-sublabel">每天 {dailyHours} 小時練功</span>
                             </div>
                         </div>
                     ) : (
@@ -286,29 +295,25 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                     <p className="no-result">{dailyResult.error}</p>
                 ) : (
                     <div className="result-items">
-                        <div className="result-item">
-                            <span className="result-value">{formatNumber(dailyResult.remaining)}</span>
-                            <span className="result-label">還需經驗值</span>
+                        <div className="interval-row">
+                            <div className="result-item">
+                                <span className="result-label">總共</span>
+                                <span className="result-value">{dailyResult.days}</span>
+                                <span className="result-label">天</span>
+                            </div>
+                            <div className="result-item">
+                                <span className="result-label">還需要</span>
+                                <span className="result-value">{formatNumber(dailyResult.remaining)}</span>
+                                <span className="result-label">經驗值</span>
+                            </div>
                         </div>
                         <div className="divider" />
                         <div className="result-item">
-                            <span className="result-value">{dailyResult.days}</span>
-                            <span className="result-label">距離截止天數</span>
-                        </div>
-                        <div className="divider" />
-                        <div className="result-item">
-                            <span className="result-value">{formatNumber(dailyResult.expPerDay)}</span>
-                            <span className="result-label">每天需要經驗值</span>
-                        </div>
-                        <div className="divider" />
-                        <div className="result-item">
+                            <span className="result-label">每天需要練</span>
                             <span className="result-value result-value--sm">
                                 {formatMins(Math.ceil(dailyResult.minutesPerDay))}
                             </span>
-                            <span className="result-label">每天需要練功時間</span>
-                            <span className="result-sublabel">
-                                每 {intervalMinutes} 分鐘 {formatNumber(expPerInterval)} 經驗
-                            </span>
+                            <span className="result-sublabel">每天 {formatNumber(dailyResult.expPerDay)} 經驗</span>
                         </div>
                     </div>
                 )}

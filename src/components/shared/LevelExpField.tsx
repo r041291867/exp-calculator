@@ -13,15 +13,19 @@ interface Props {
 }
 
 export default function LevelExpField({
-    level, onLevelChange,
-    exp, onExpChange,
-    mode, onModeChange,
-    maxExp, expPercent,
+    level,
+    onLevelChange,
+    exp,
+    onExpChange,
+    mode,
+    onModeChange,
+    maxExp,
+    expPercent,
 }: Props) {
     return (
         <>
             <div className="field">
-                <label>目前等級 (1-200)</label>
+                <label style={{ height: "23px" }}>目前等級 (1-200)</label>
                 <select value={level} onChange={(e) => onLevelChange(Number(e.target.value))}>
                     {EXP_TABLE.slice(0, 199).map((entry) => (
                         <option key={entry.level} value={entry.level}>
@@ -41,8 +45,8 @@ export default function LevelExpField({
                         className="input-mode-switch"
                         onClick={() => onModeChange(mode === "number" ? "percent" : "number")}
                     >
-                        <button className={mode === "number" ? "active" : ""}>數值</button>
                         <button className={mode === "percent" ? "active" : ""}>%</button>
+                        <button className={mode === "number" ? "active" : ""}>數值</button>
                     </div>
                 </div>
                 <input

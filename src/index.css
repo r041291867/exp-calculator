@@ -325,7 +325,7 @@ select option:disabled {
 }
 
 .result-value {
-    font-size: 44px;
+    font-size: 36px;
     font-weight: 700;
     color: #ffffff;
     line-height: 1;
@@ -334,12 +334,12 @@ select option:disabled {
 
 .result-label {
     font-size: 12px;
-    color: #555;
+    color: #888;
 }
 
 .result-sublabel {
     font-size: 11px;
-    color: #3a3a3a;
+    color: #777;
 }
 
 .no-result {
@@ -518,10 +518,18 @@ select option:disabled {
     margin: 0 22px;
 }
 
-.rate-result-grid > :nth-child(1) { border-radius: 7px 0 0 0; }
-.rate-result-grid > :nth-child(3) { border-radius: 0 7px 0 0; }
-.rate-result-grid > :nth-child(7) { border-radius: 0 0 0 7px; }
-.rate-result-grid > :nth-child(9) { border-radius: 0 0 7px 0; }
+.rate-result-grid > :nth-child(1) {
+    border-radius: 7px 0 0 0;
+}
+.rate-result-grid > :nth-child(3) {
+    border-radius: 0 7px 0 0;
+}
+.rate-result-grid > :nth-child(7) {
+    border-radius: 0 0 0 7px;
+}
+.rate-result-grid > :nth-child(9) {
+    border-radius: 0 0 7px 0;
+}
 
 .rate-grid-cell {
     background: #1c1c1c;
@@ -567,7 +575,7 @@ select option:disabled {
 .level-up-hint {
     font-size: 12px;
     color: #555;
-    margin: 12px 22px 0;
+    margin: 12px 16px 12px;
     text-align: center;
 }
 
@@ -575,7 +583,9 @@ select option:disabled {
 .rate-grid-clickable {
     cursor: pointer;
     position: relative;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 
 .rate-grid-clickable:hover {
@@ -722,7 +732,9 @@ select option:disabled {
     margin-bottom: -1px;
     cursor: pointer;
     letter-spacing: 0.04em;
-    transition: color 0.15s, border-color 0.15s;
+    transition:
+        color 0.15s,
+        border-color 0.15s;
     user-select: none;
 }
 
@@ -806,6 +818,7 @@ select:disabled {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    height: 41px;
 }
 
 .buff-inline-input {
@@ -817,6 +830,173 @@ select:disabled {
 
 .buff-inline-input input[type="number"] {
     width: 80px;
+}
+
+/* ── Rate results side-by-side layout ── */
+.rate-results-row {
+    display: flex;
+    gap: 1px;
+    background: #2a2a2a;
+    border-top: 1px solid #2a2a2a;
+}
+
+.rate-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #161616;
+}
+
+.rate-col .rate-result-title {
+    padding: 14px 16px 12px;
+}
+
+.rate-col-form {
+    padding: 0 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rate-col-mult {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #191919;
+    border-top: 1px solid #2a2a2a;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+/* ── R2 collapsible panel ── */
+.r2-panel {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 38px;
+    overflow: hidden;
+    position: relative;
+    transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 1px solid #2a2a2a;
+}
+
+.r2-panel--open {
+    max-width: 800px;
+}
+
+.r2-content {
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    background: #161616;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    position: relative;
+}
+
+.r2-panel--open .r2-content {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.15s ease 0.2s;
+}
+
+.r2-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 4px;
+    transition:
+        color 0.15s,
+        background 0.15s;
+}
+
+.r2-close-btn:hover {
+    color: #ccc;
+    background: #2a2a2a;
+}
+
+.r2-toggle-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 38px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background: #161616;
+    border: none;
+    color: #777;
+    cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.15s ease;
+    user-select: none;
+}
+
+.r2-toggle-btn:hover {
+    color: #bbb;
+    background: #1c1c1c;
+}
+
+.r2-panel--open .r2-toggle-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.r2-panel--open .r2-toggle-btn {
+    flex: 0 0 0px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Simple 2-column rate grid ── */
+.rate-sg {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 1px;
+    background: #282828;
+    border: 1px solid #282828;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 12px 16px 0;
+}
+
+.rate-sg > :nth-child(1) {
+    border-radius: 7px 0 0 0;
+}
+.rate-sg > :nth-child(2) {
+    border-radius: 0 7px 0 0;
+}
+.rate-sg > :nth-child(3) {
+    border-radius: 0 0 0 7px;
+}
+.rate-sg > :nth-child(4) {
+    border-radius: 0 0 7px 0;
+}
+
+.rate-sg-clickable {
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.rate-sg-clickable:hover {
+    background: #252525;
+    color: #fff;
 }
 
 /* ── Effective multiplier bar ── */

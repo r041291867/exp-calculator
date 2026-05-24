@@ -3,11 +3,10 @@ import { getExpToNext } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { formatMins } from "../utils/format";
+import { formatNumber, formatMins } from "../utils/format";
 import ExpAmountField from "./shared/ExpAmountField";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
-import RateResultGrid from "./shared/RateResultGrid";
 import CollapsibleCard from "./shared/CollapsibleCard";
 
 interface BaseRateProps extends SharedLevelExp {
@@ -34,6 +33,15 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     const [hasPrayer, setHasPrayer] = useLocalStorage("base.prayer", false);
     const [onlyEffectiveMult, setOnlyEffectiveMult] = useLocalStorage("base.onlyEffMult", false);
 
+    const [r2Collapsed, setR2Collapsed] = useLocalStorage("base.r2.collapsed", true);
+    const [r2HasPrayer, setR2HasPrayer] = useLocalStorage("base.r2.prayer", false);
+    const [r2HasHottime, setR2HasHottime] = useLocalStorage("base.r2.hottime", false);
+    const [r2HottimeMult, setR2HottimeMult] = useLocalStorage("base.r2.hottimeMult", 2);
+    const [r2HasAura, setR2HasAura] = useLocalStorage("base.r2.hasAura", false);
+    const [r2AuraTriggers, setR2AuraTriggers] = useLocalStorage("base.r2.auraTriggers", 15);
+    const [r2AuraDuration, setR2AuraDuration] = useLocalStorage("base.r2.auraDuration", 2);
+    const [r2AuraMult, setR2AuraMult] = useLocalStorage("base.r2.auraMult", 2);
+
     useEffect(() => {
         setTotalExp(0);
     }, [currentLevel]);
@@ -43,10 +51,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
 
         const auraTime = auraDuration * (hasAura ? auraTriggers : 0);
         if (auraTime > durationMinutes) {
-            return {
-                type: "error" as const,
-                msg: `氣場時間（${auraTime} 分）超過統計時間（${durationMinutes} 分）`,
-            };
+            return { type: "error" as const, msg: `氣場時間（${auraTime} 分）超過統計時間（${durationMinutes} 分）` };
         }
 
         const hottimeBase = hasHottime ? hottimeMultiplier : 1;
@@ -54,42 +59,39 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         const effNoPrayer = hottimeBase + (auraMultiplier - 1) * auraFraction;
         const effective = effNoPrayer + (hasPrayer ? 0.25 : 0);
 
+        const r2AuraTime = r2AuraDuration * (r2HasAura ? r2AuraTriggers : 0);
+        const r2AuraFraction = Math.min(1, r2AuraTime / durationMinutes);
+        const r2HottimeBase = r2HasHottime ? r2HottimeMult : 1;
+        const r2EffNoPrayer = r2HottimeBase + (r2AuraMult - 1) * r2AuraFraction;
+        const r2Effective = r2EffNoPrayer + (r2HasPrayer ? 0.25 : 0);
+
         if (onlyEffectiveMult || totalExp <= 0) {
-            return { type: "mult-only" as const, effective };
+            return { type: "mult-only" as const, effective, r2Effective };
         }
 
         const base1xPerMin = totalExp / durationMinutes / effective;
-        const spotPerMin = base1xPerMin * effNoPrayer;
 
-        const spotNoPrayer10 = Math.round(spotPerMin * 10);
-        const spotNoPrayer60 = Math.round(spotPerMin * 60);
-        const spotWithPrayer10 = Math.round(spotPerMin * 1.25 * 10);
-        const spotWithPrayer60 = Math.round(spotPerMin * 1.25 * 60);
+        const spot10 = Math.round(base1xPerMin * effective * 10);
+        const spot60 = Math.round(base1xPerMin * effective * 60);
 
-        const noPrayer10 = Math.round(base1xPerMin * 10);
-        const noPrayer60 = Math.round(base1xPerMin * 60);
-        const withPrayer10 = Math.round(base1xPerMin * 1.25 * 10);
-        const withPrayer60 = Math.round(base1xPerMin * 1.25 * 60);
+        const r2Rate = base1xPerMin * r2Effective;
+        const r2Rate10 = Math.round(r2Rate * 10);
+        const r2Rate60 = Math.round(r2Rate * 60);
 
         const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
-        const minsToLevelUpSpot = remaining > 0 ? Math.ceil(remaining / spotPerMin) : 0;
-        const minsToLevelUpSpotPrayer = remaining > 0 ? Math.ceil(remaining / (spotPerMin * 1.25)) : 0;
-        const minsToLevelUpBase = remaining > 0 ? Math.ceil(remaining / base1xPerMin) : 0;
+        const minsToLevelUpSpot = remaining > 0 ? Math.ceil(remaining / (base1xPerMin * effective)) : 0;
+        const minsToLevelUpR2 = remaining > 0 && r2Rate > 0 ? Math.ceil(remaining / r2Rate) : 0;
 
         return {
             type: "ok" as const,
             effective,
-            spotNoPrayer10,
-            spotNoPrayer60,
-            spotWithPrayer10,
-            spotWithPrayer60,
-            noPrayer10,
-            noPrayer60,
-            withPrayer10,
-            withPrayer60,
+            spot10,
+            spot60,
             minsToLevelUpSpot,
-            minsToLevelUpSpotPrayer,
-            minsToLevelUpBase,
+            r2Effective,
+            r2Rate10,
+            r2Rate60,
+            minsToLevelUpR2,
         };
     }, [
         durationMinutes,
@@ -101,10 +103,19 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         auraDuration,
         auraMultiplier,
         hasPrayer,
+        r2HasPrayer,
+        r2HasHottime,
+        r2HottimeMult,
+        r2HasAura,
+        r2AuraTriggers,
+        r2AuraDuration,
+        r2AuraMult,
         onlyEffectiveMult,
         currentLevel,
         currentExp,
     ]);
+
+    const clickable = !!onRateClick;
 
     return (
         <CollapsibleCard storageKey="base.collapsed" icon="⚡" title="經驗效率分析" className="card-full">
@@ -142,70 +153,75 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                         onChange={handleTotalExpChange}
                     />
                 )}
-
-                <div className="field-divider">
-                    <span>倍率設定</span>
-                </div>
-
-                <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
-
-                <div className="field">
-                    <div className="buff-row">
-                        <label className="prayer-checkbox-row">
-                            <input
-                                type="checkbox"
-                                checked={hasHottime}
-                                onChange={(e) => setHasHottime(e.target.checked)}
-                            />
-                            <span>Hot Time</span>
-                        </label>
-                        {hasHottime && (
-                            <div className="buff-inline-input">
-                                <input
-                                    type="number"
-                                    min={1}
-                                    step={0.25}
-                                    value={hottimeMultiplier || ""}
-                                    onChange={(e) => setHottimeMultiplier(Number(e.target.value))}
-                                    onBlur={() => setHottimeMultiplier((v) => Math.max(1, v || 1))}
-                                />
-                                <span className="unit-label">倍</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="field">
-                    <label className="prayer-checkbox-row">
-                        <input type="checkbox" checked={hasAura} onChange={(e) => setHasAura(e.target.checked)} />
-                        <span>氣場</span>
-                    </label>
-                </div>
-
-                {hasAura && (
-                    <AuraFields
-                        triggers={auraTriggers}
-                        onTriggersChange={setAuraTriggers}
-                        duration={auraDuration}
-                        onDurationChange={setAuraDuration}
-                        multiplier={auraMultiplier}
-                        onMultiplierChange={setAuraMultiplier}
-                    />
-                )}
             </div>
 
-            {(result?.type === "ok" || result?.type === "mult-only") && (
-                <div className="effective-mult-bar">
-                    <span className="effective-mult-label">計算有效倍率</span>
-                    <span className="effective-mult-value">×{result.effective.toFixed(3)}</span>
-                </div>
-            )}
+            <div className="rate-results-row">
+                <div className="rate-col">
+                    <h2 className="rate-result-title">量測倍率設定</h2>
 
-            {!onlyEffectiveMult && (
-                <>
-                    <div className="rate-result-section">
-                        <h2 className="rate-result-title">場地效率（含 Hottime / 氣場）</h2>
-                        {!result ? (
+                    <div className="rate-col-form">
+                        <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
+
+                        <div className="field">
+                            <div className="buff-row">
+                                <label className="prayer-checkbox-row">
+                                    <input
+                                        type="checkbox"
+                                        checked={hasHottime}
+                                        onChange={(e) => setHasHottime(e.target.checked)}
+                                    />
+                                    <span>Hot Time</span>
+                                </label>
+                                {hasHottime && (
+                                    <div className="buff-inline-input">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            step={0.25}
+                                            value={hottimeMultiplier || ""}
+                                            onChange={(e) => setHottimeMultiplier(Number(e.target.value))}
+                                            onBlur={() => setHottimeMultiplier((v) => Math.max(1, v || 1))}
+                                        />
+                                        <span className="unit-label">倍</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="field">
+                            <label className="prayer-checkbox-row">
+                                <input
+                                    type="checkbox"
+                                    checked={hasAura}
+                                    onChange={(e) => setHasAura(e.target.checked)}
+                                />
+                                <span>氣場</span>
+                            </label>
+                        </div>
+
+                        {hasAura && (
+                            <AuraFields
+                                triggers={auraTriggers}
+                                onTriggersChange={setAuraTriggers}
+                                duration={auraDuration}
+                                onDurationChange={setAuraDuration}
+                                multiplier={auraMultiplier}
+                                onMultiplierChange={setAuraMultiplier}
+                            />
+                        )}
+                    </div>
+
+                    {/* <div className="field-divider"><span>場地效率</span></div> */}
+
+                    {result && (result.type === "ok" || result.type === "mult-only") && (
+                        <div className="rate-col-mult">
+                            <span className="effective-mult-label">有效倍率</span>
+                            <span className="effective-mult-value">×{result.effective.toFixed(3)}</span>
+                        </div>
+                    )}
+
+                    {!onlyEffectiveMult &&
+                        (!result ? (
                             <p className="no-result">請輸入統計時間和經驗值</p>
                         ) : result.type === "error" ? (
                             <p className="no-result">{result.msg}</p>
@@ -213,47 +229,129 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                             <p className="no-result">請輸入統計期間獲得經驗</p>
                         ) : (
                             <>
-                                <RateResultGrid
-                                    noPrayer10={result.spotNoPrayer10}
-                                    noPrayer60={result.spotNoPrayer60}
-                                    withPrayer10={result.spotWithPrayer10}
-                                    withPrayer60={result.spotWithPrayer60}
-                                    onCellClick={onRateClick}
-                                />
+                                <div className="rate-sg">
+                                    <div className="rate-grid-label">10 分鐘</div>
+                                    <div
+                                        className={`rate-grid-value${clickable ? " rate-sg-clickable" : ""}`}
+                                        onClick={clickable ? () => onRateClick(10, result.spot10) : undefined}
+                                    >
+                                        {formatNumber(result.spot10)}
+                                    </div>
+                                    <div className="rate-grid-label">60 分鐘</div>
+                                    <div
+                                        className={`rate-grid-value${clickable ? " rate-sg-clickable" : ""}`}
+                                        onClick={clickable ? () => onRateClick(60, result.spot60) : undefined}
+                                    >
+                                        {formatNumber(result.spot60)}
+                                    </div>
+                                </div>
                                 {result.minsToLevelUpSpot > 0 && (
                                     <p className="level-up-hint">
-                                        以目前場地效率約 <strong>{formatMins(result.minsToLevelUpSpot)}</strong>{" "}
-                                        升級（無祈禱）／<strong>{formatMins(result.minsToLevelUpSpotPrayer)}</strong>
-                                        （有祈禱）
+                                        約 <strong>{formatMins(result.minsToLevelUpSpot)}</strong> 升級
                                     </p>
                                 )}
                             </>
-                        )}
-                    </div>
+                        ))}
+                </div>
 
-                    <div className="rate-result-section">
-                        <h2 className="rate-result-title">1× 基礎效率（回推）</h2>
-                        {!result ? (
-                            <p className="no-result">請輸入統計時間和經驗值</p>
-                        ) : result.type === "error" ? null : result.type === "mult-only" ? null : (
-                            <>
-                                <RateResultGrid
-                                    noPrayer10={result.noPrayer10}
-                                    noPrayer60={result.noPrayer60}
-                                    withPrayer10={result.withPrayer10}
-                                    withPrayer60={result.withPrayer60}
-                                    onCellClick={onRateClick}
+                <div className={`r2-panel${r2Collapsed ? "" : " r2-panel--open"}`}>
+                    <div className="r2-content">
+                        <button className="r2-close-btn" onClick={() => setR2Collapsed(true)}>✕</button>
+                        <h2 className="rate-result-title">回推計算</h2>
+
+                        <div className="rate-col-form">
+                            <PrayerCheckbox checked={r2HasPrayer} onChange={setR2HasPrayer} />
+
+                            <div className="field">
+                                <div className="buff-row">
+                                    <label className="prayer-checkbox-row">
+                                        <input
+                                            type="checkbox"
+                                            checked={r2HasHottime}
+                                            onChange={(e) => setR2HasHottime(e.target.checked)}
+                                        />
+                                        <span>Hot Time</span>
+                                    </label>
+                                    {r2HasHottime && (
+                                        <div className="buff-inline-input">
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                step={0.25}
+                                                value={r2HottimeMult || ""}
+                                                onChange={(e) => setR2HottimeMult(Number(e.target.value))}
+                                                onBlur={() => setR2HottimeMult((v) => Math.max(1, v || 1))}
+                                            />
+                                            <span className="unit-label">倍</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="field">
+                                <label className="prayer-checkbox-row">
+                                    <input
+                                        type="checkbox"
+                                        checked={r2HasAura}
+                                        onChange={(e) => setR2HasAura(e.target.checked)}
+                                    />
+                                    <span>氣場</span>
+                                </label>
+                            </div>
+
+                            {r2HasAura && (
+                                <AuraFields
+                                    triggers={r2AuraTriggers}
+                                    onTriggersChange={setR2AuraTriggers}
+                                    duration={r2AuraDuration}
+                                    onDurationChange={setR2AuraDuration}
+                                    multiplier={r2AuraMult}
+                                    onMultiplierChange={setR2AuraMult}
                                 />
-                                {result.minsToLevelUpBase > 0 && (
+                            )}
+                        </div>
+
+                        {result && (result.type === "ok" || result.type === "mult-only") && (
+                            <div className="rate-col-mult">
+                                <span className="effective-mult-label">有效倍率</span>
+                                <span className="effective-mult-value">×{result.r2Effective.toFixed(3)}</span>
+                            </div>
+                        )}
+
+                        {!onlyEffectiveMult && result?.type === "ok" && (
+                            <>
+                                <div className="rate-sg">
+                                    <div className="rate-grid-label">10 分鐘</div>
+                                    <div
+                                        className={`rate-grid-value${clickable ? " rate-sg-clickable" : ""}`}
+                                        onClick={clickable ? () => onRateClick(10, result.r2Rate10) : undefined}
+                                    >
+                                        {formatNumber(result.r2Rate10)}
+                                    </div>
+                                    <div className="rate-grid-label">60 分鐘</div>
+                                    <div
+                                        className={`rate-grid-value${clickable ? " rate-sg-clickable" : ""}`}
+                                        onClick={clickable ? () => onRateClick(60, result.r2Rate60) : undefined}
+                                    >
+                                        {formatNumber(result.r2Rate60)}
+                                    </div>
+                                </div>
+                                {result.minsToLevelUpR2 > 0 && (
                                     <p className="level-up-hint">
-                                        以 1× 基礎效率約 <strong>{formatMins(result.minsToLevelUpBase)}</strong> 升級
+                                        約 <strong>{formatMins(result.minsToLevelUpR2)}</strong> 升級
                                     </p>
                                 )}
                             </>
                         )}
                     </div>
-                </>
-            )}
+                    <button
+                        className="r2-toggle-btn"
+                        onClick={() => setR2Collapsed(false)}
+                    >
+                        回推計算
+                    </button>
+                </div>
+            </div>
         </CollapsibleCard>
     );
 }
