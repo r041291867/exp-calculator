@@ -305,6 +305,19 @@ select option:disabled {
     margin-bottom: 0;
 }
 
+.result-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 450px) {
+    .result-row {
+        grid-template-columns: 1fr;
+        gap: 0px;
+    }
+}
+
 .result-items {
     display: flex;
     flex-direction: column;

@@ -260,7 +260,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                         <p className="no-result">點擊計算以查看結果</p>
                     ) : daysResult ? (
                         <div className="result-items">
-                            <div className="interval-row">
+                            <div className="result-row">
                                 <div className="result-item">
                                     <span className="result-value result-value--sm">
                                         {formatNumber(daysResult.remaining)}
@@ -295,7 +295,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                     <p className="no-result">{dailyResult.error}</p>
                 ) : (
                     <div className="result-items">
-                        <div className="interval-row">
+                        <div className="result-row">
                             <div className="result-item">
                                 <span className="result-label">總共</span>
                                 <span className="result-value">{dailyResult.days}</span>
