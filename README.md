@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# 楓之谷經驗值計算器
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+楓之谷（MapleStory）升等輔助工具，幫助玩家快速估算升等所需時間、規劃每日練功目標，並分析各種倍率 Buff 下的練功效率。
 
-Currently, two official plugins are available:
+## 功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 角色資訊
+輸入目前等級與當前經驗值（支援直接輸入 EXP 或百分比）。
 
-## React Compiler
+### 升級時間計算
+- **升等要幾天**：根據每次練功獲得的經驗與每天練功時數，計算達到目標等級所需天數。
+- **每天要練多少**：設定開始與結束日期，反推每天需要累積的經驗值與練功時間。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 經驗效率分析
+輸入統計期間獲得的實際經驗，搭配以下參數計算有效倍率與換算經驗速率：
+- **Hot Time** — 可設定倍率（預設 2 倍）
+- **氣場（Aura）** — 可設定觸發次數、持續時間與倍率
+- **祈禱（Prayer）** — +0.25 倍率
 
-## Expanding the ESLint configuration
+同時支援**回推計算**，在不同 Buff 組合下比較同一場地的經驗速率。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 技術棧
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| 項目 | 版本 |
+|------|------|
+| React | 19 |
+| TypeScript | 6 |
+| Vite | 8 |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 本地開發
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+建置：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm build
 ```
+
+## 授權
+
+MIT
