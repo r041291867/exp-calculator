@@ -1,4 +1,6 @@
 import { EXP_TABLE } from "../../data/expTable";
+
+const LEVEL_OPTIONS = EXP_TABLE.slice(0, 199);
 import { formatNumber } from "../../utils/format";
 
 interface Props {
@@ -27,7 +29,7 @@ export default function LevelExpField({
             <div className="field">
                 <label style={{ height: "23px" }}>目前等級 (1-200)</label>
                 <select value={level} onChange={(e) => onLevelChange(Number(e.target.value))}>
-                    {EXP_TABLE.slice(0, 199).map((entry) => (
+                    {LEVEL_OPTIONS.map((entry) => (
                         <option key={entry.level} value={entry.level}>
                             {entry.level} 級
                         </option>

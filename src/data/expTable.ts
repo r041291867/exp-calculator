@@ -214,12 +214,12 @@ export const TIME_PRESETS = [
   { label: '60分鐘', minutes: 60 },
 ];
 
+const EXP_MAP = new Map(EXP_TABLE.map((e) => [e.level, e]));
+
 export function getExpToNext(level: number): number {
-  const entry = EXP_TABLE.find((e) => e.level === level);
-  return entry?.expToNext ?? 0;
+  return EXP_MAP.get(level)?.expToNext ?? 0;
 }
 
 export function getCumulativeExp(level: number): number {
-  const entry = EXP_TABLE.find((e) => e.level === level);
-  return entry?.cumulativeExp ?? 0;
+  return EXP_MAP.get(level)?.cumulativeExp ?? 0;
 }

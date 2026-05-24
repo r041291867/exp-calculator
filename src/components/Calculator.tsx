@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { flushSync } from "react-dom";
 import { EXP_TABLE, getCumulativeExp } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -6,6 +7,7 @@ import { formatNumber, formatMins } from "../utils/format";
 import CollapsibleCard from "./shared/CollapsibleCard";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
+const TARGET_LEVEL_OPTIONS = EXP_TABLE.slice(1);
 
 function getTodayStr(): string {
     return new Date().toISOString().slice(0, 10);
@@ -51,13 +53,13 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
 
     useImperativeHandle(ref, () => ({
         activate(mins: number, exp: number) {
-            setIntervalMinutes(mins);
-            setExpPerInterval(exp);
-            setCollapsed(false);
-            setHasCalculated(false);
-            setTimeout(() => {
-                cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            }, 50);
+            flushSync(() => {
+                setIntervalMinutes(mins);
+                setExpPerInterval(exp);
+                setCollapsed(false);
+                setHasCalculated(false);
+            });
+            cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         },
     }));
 
@@ -136,7 +138,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                                     setHasCalculated(false);
                                 }}
                             >
-                                {EXP_TABLE.slice(1).map((entry) => (
+                                {TARGET_LEVEL_OPTIONS.map((entry) => (
                                     <option
                                         key={entry.level}
                                         value={entry.level}
