@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { flushSync } from "react-dom";
-import { EXP_TABLE, getCumulativeExp } from "../data/expTable";
+import { EXP_TABLE, getCumulativeExp, getExpToNext } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatNumber, formatMins } from "../utils/format";
@@ -8,6 +8,18 @@ import CollapsibleCard from "./shared/CollapsibleCard";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 const TARGET_LEVEL_OPTIONS = EXP_TABLE.slice(1);
+
+function getLevelFromCumExp(cumExp: number): { level: number; expIntoLevel: number; expToNext: number } {
+    let resultLevel = 1;
+    let resultCumExp = 0;
+    for (let i = 0; i < EXP_TABLE.length; i++) {
+        if (EXP_TABLE[i].cumulativeExp > cumExp) break;
+        resultLevel = EXP_TABLE[i].level;
+        resultCumExp = EXP_TABLE[i].cumulativeExp;
+    }
+    const expToNext = getExpToNext(resultLevel);
+    return { level: resultLevel, expIntoLevel: cumExp - resultCumExp, expToNext };
+}
 
 function getTodayStr(): string {
     return new Date().toISOString().slice(0, 10);
@@ -40,7 +52,7 @@ export interface CalcHandle {
 }
 
 const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ currentLevel, currentExp }, ref) {
-    const [calcMode, setCalcMode] = useLocalStorage<"days" | "daily">("calc.mode", "days");
+    const [calcMode, setCalcMode] = useLocalStorage<"days" | "daily" | "units">("calc.mode", "days");
     const [collapsed, setCollapsed] = useLocalStorage("calc.collapsed", false);
     const [targetLevel, setTargetLevel] = useLocalStorage("calc.targetLevel", 10);
     const [intervalMinutes, setIntervalMinutes] = useLocalStorage("calc.interval", 10);
@@ -48,6 +60,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
     const [dailyHours, setDailyHours] = useLocalStorage("calc.dailyHours", 2);
     const [startDate, setStartDate] = useLocalStorage("calc.startDate", getTodayStr());
     const [endDate, setEndDate] = useLocalStorage("calc.endDate", "");
+    const [units, setUnits] = useLocalStorage("calc.units", 10);
     const [hasCalculated, setHasCalculated] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +92,16 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
         return Math.max(0, targetCumulative - currentCumulative);
     }, [currentLevel, currentExp, targetLevel]);
 
+    const unitsResult = useMemo(() => {
+        if (units <= 0 || expPerInterval <= 0) return null;
+        const totalExpGained = units * expPerInterval;
+        const startCumExp = getCumulativeExp(currentLevel) + currentExp;
+        const finalCumExp = startCumExp + totalExpGained;
+        const { level, expIntoLevel, expToNext } = getLevelFromCumExp(finalCumExp);
+        const percent = expToNext > 0 ? (expIntoLevel / expToNext) * 100 : 100;
+        return { totalExpGained, resultLevel: level, percent, expIntoLevel, expToNext };
+    }, [units, expPerInterval, currentLevel, currentExp]);
+
     const daysResult = useMemo(() => {
         if (remaining === null) return null;
         const sessions = remaining / expPerInterval;
@@ -98,7 +121,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
         return { remaining, days, expPerDay, minutesPerDay };
     }, [remaining, startDate, endDate, expPerInterval, intervalMinutes]);
 
-    function switchMode(mode: "days" | "daily") {
+    function switchMode(mode: "days" | "daily" | "units") {
         setCalcMode(mode);
         setHasCalculated(false);
     }
@@ -120,6 +143,9 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                 <button className={calcMode === "daily" ? "active" : ""} onClick={() => switchMode("daily")}>
                     每天要練多少
                 </button>
+                <button className={calcMode === "units" ? "active" : ""} onClick={() => switchMode("units")}>
+                    練了多少％
+                </button>
             </div>
 
             <div className="form-body">
@@ -129,26 +155,28 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                             <span className="sub-label">目前等級</span>
                             <input type="number" value={currentLevel} disabled />
                         </div>
-                        <div className="interval-col">
-                            <span className="sub-label">目標等級 (2-200)</span>
-                            <select
-                                value={targetLevel}
-                                onChange={(e) => {
-                                    setTargetLevel(Number(e.target.value));
-                                    setHasCalculated(false);
-                                }}
-                            >
-                                {TARGET_LEVEL_OPTIONS.map((entry) => (
-                                    <option
-                                        key={entry.level}
-                                        value={entry.level}
-                                        disabled={entry.level <= currentLevel}
-                                    >
-                                        {entry.level} 級
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {calcMode !== "units" && (
+                            <div className="interval-col">
+                                <span className="sub-label">目標等級 (2-200)</span>
+                                <select
+                                    value={targetLevel}
+                                    onChange={(e) => {
+                                        setTargetLevel(Number(e.target.value));
+                                        setHasCalculated(false);
+                                    }}
+                                >
+                                    {TARGET_LEVEL_OPTIONS.map((entry) => (
+                                        <option
+                                            key={entry.level}
+                                            value={entry.level}
+                                            disabled={entry.level <= currentLevel}
+                                        >
+                                            {entry.level} 級
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -217,6 +245,26 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                     <p className="hint">選擇適合的時間區間，例如組隊任務通常需要更長時間</p>
                 </div>
 
+                {calcMode === "units" && (
+                    <div className="field">
+                        <div className="interval-row">
+                            <div className="interval-col">
+                                <span className="sub-label">練幾個單位（1 單位 = {intervalMinutes} 分鐘）</span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={units || ""}
+                                    onChange={(e) => {
+                                        setUnits(Number(e.target.value));
+                                        setHasCalculated(false);
+                                    }}
+                                    onBlur={() => setUnits((v) => Math.max(1, v || 1))}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {calcMode === "days" && (
                     <div className="field">
                         <div className="daily-hours-row">
@@ -257,7 +305,31 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
 
             <div className="result-card">
                 <h2>計算結果</h2>
-                {calcMode === "days" ? (
+                {calcMode === "units" ? (
+                    !hasCalculated ? (
+                        <p className="no-result">點擊計算以查看結果</p>
+                    ) : !unitsResult ? (
+                        <p className="no-result">請輸入單位數量</p>
+                    ) : (
+                        <div className="result-items">
+                            <div className="result-item">
+                                <span className="result-value result-value--sm">
+                                    {formatNumber(unitsResult.totalExpGained)}
+                                </span>
+                                <span className="result-label">獲得經驗值</span>
+                            </div>
+                            <div className="divider" />
+                            <div className="result-item">
+                                <span className="result-value">{unitsResult.resultLevel} 等</span>
+                                <span className="result-label">{unitsResult.percent.toFixed(2)}%</span>
+                                <span className="result-sublabel">
+                                    {formatNumber(unitsResult.expIntoLevel)} / {formatNumber(unitsResult.expToNext)}{" "}
+                                    經驗
+                                </span>
+                            </div>
+                        </div>
+                    )
+                ) : calcMode === "days" ? (
                     !hasCalculated ? (
                         <p className="no-result">點擊計算以查看結果</p>
                     ) : daysResult ? (
