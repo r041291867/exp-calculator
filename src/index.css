@@ -518,6 +518,48 @@ select option:disabled {
     color: #666;
     letter-spacing: 0.08em;
     padding: 14px 22px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.info-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.info-tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #444;
+    color: #aaa;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: default;
+    flex-shrink: 0;
+    letter-spacing: 0;
+}
+
+.info-tooltip-content {
+    position: fixed;
+    transform: translateX(-50%);
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #bbb;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    padding: 8px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 9999;
+    pointer-events: none;
 }
 
 .rate-result-grid {

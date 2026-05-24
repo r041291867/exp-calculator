@@ -9,6 +9,7 @@ import ExpAmountField from "./shared/ExpAmountField";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import CollapsibleCard from "./shared/CollapsibleCard";
+import Tooltip from "./shared/Tooltip";
 
 interface BaseRateProps extends SharedLevelExp {
     onRateClick?: (mins: number, exp: number) => void;
@@ -137,17 +138,27 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         }
 
         const effective = calcEffective({
-            hasHottime, hottimeMult: hottimeMultiplier,
-            hasAura, auraTriggers, auraDuration, auraMultiplier,
-            durationMinutes, hasPrayer, hasDoubleCard,
+            hasHottime,
+            hottimeMult: hottimeMultiplier,
+            hasAura,
+            auraTriggers,
+            auraDuration,
+            auraMultiplier,
+            durationMinutes,
+            hasPrayer,
+            hasDoubleCard,
         });
 
         const r2Effective = calcEffective({
-            hasHottime: r2Config.hasHottime, hottimeMult: r2Config.hottimeMult,
-            hasAura: r2Config.hasAura, auraTriggers: r2Config.auraTriggers,
-            auraDuration: r2Config.auraDuration, auraMultiplier: r2Config.auraMult,
+            hasHottime: r2Config.hasHottime,
+            hottimeMult: r2Config.hottimeMult,
+            hasAura: r2Config.hasAura,
+            auraTriggers: r2Config.auraTriggers,
+            auraDuration: r2Config.auraDuration,
+            auraMultiplier: r2Config.auraMult,
             durationMinutes,
-            hasPrayer: r2Config.hasPrayer, hasDoubleCard: r2Config.hasDoubleCard,
+            hasPrayer: r2Config.hasPrayer,
+            hasDoubleCard: r2Config.hasDoubleCard,
         });
 
         if (onlyEffectiveMult || totalExp <= 0) {
@@ -168,17 +179,30 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
 
         return {
             type: "ok" as const,
-            effective, spot10, spot60, minsToLevelUpSpot,
-            r2Effective, r2Rate10, r2Rate60, minsToLevelUpR2,
+            effective,
+            spot10,
+            spot60,
+            minsToLevelUpSpot,
+            r2Effective,
+            r2Rate10,
+            r2Rate60,
+            minsToLevelUpR2,
         };
     }, [
-        durationMinutes, totalExp,
-        hasHottime, hottimeMultiplier,
-        hasAura, auraTriggers, auraDuration, auraMultiplier,
-        hasPrayer, hasDoubleCard,
+        durationMinutes,
+        totalExp,
+        hasHottime,
+        hottimeMultiplier,
+        hasAura,
+        auraTriggers,
+        auraDuration,
+        auraMultiplier,
+        hasPrayer,
+        hasDoubleCard,
         r2Config,
         onlyEffectiveMult,
-        currentLevel, currentExp,
+        currentLevel,
+        currentExp,
     ]);
 
     const clickable = !!onRateClick;
@@ -223,7 +247,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
 
             <div className="rate-results-row">
                 <div className="rate-col">
-                    <h2 className="rate-result-title">量測倍率設定</h2>
+                    <h2 className="rate-result-title">統計期間倍率設定</h2>
 
                     <div className="rate-col-form">
                         <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
@@ -295,11 +319,17 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                         <button className="r2-close-btn" onClick={() => setR2Collapsed(true)}>
                             ✕
                         </button>
-                        <h2 className="rate-result-title">回推計算</h2>
-
+                        <h2 className="rate-result-title">
+                            不同倍率回推
+                            <Tooltip content="例：用統計期間有氣場無祈禱的經驗，推估無氣場有祈禱時的經驗效率" />
+                        </h2>
                         <div className="rate-col-form">
                             <PrayerCheckbox checked={r2Config.hasPrayer} onChange={(v) => setR2("hasPrayer", v)} />
-                            <PrayerCheckbox checked={r2Config.hasDoubleCard} onChange={(v) => setR2("hasDoubleCard", v)} label="加倍卷" />
+                            <PrayerCheckbox
+                                checked={r2Config.hasDoubleCard}
+                                onChange={(v) => setR2("hasDoubleCard", v)}
+                                label="加倍卷"
+                            />
 
                             <HottimeField
                                 checked={r2Config.hasHottime}
@@ -338,7 +368,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                             </div>
                         )}
 
-                        {!onlyEffectiveMult && result?.type === "ok" && (
+                        {!onlyEffectiveMult && result?.type === "ok" ? (
                             <>
                                 <RateSg
                                     rate10={result.r2Rate10}
@@ -352,6 +382,8 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                                     </p>
                                 )}
                             </>
+                        ) : (
+                            <p className="no-result">請輸入統計期間獲得經驗</p>
                         )}
                     </div>
                     <button className="r2-toggle-btn" onClick={() => setR2Collapsed(false)}>
