@@ -60,7 +60,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
     const [dailyHours, setDailyHours] = useLocalStorage("calc.dailyHours", 2);
     const [startDate, setStartDate] = useLocalStorage("calc.startDate", getTodayStr());
     const [endDate, setEndDate] = useLocalStorage("calc.endDate", "");
-    const [units, setUnits] = useLocalStorage("calc.units", 10);
+    const [units, setUnits] = useLocalStorage("calc.hours", 1);
     const [hasCalculated, setHasCalculated] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
@@ -93,14 +93,15 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
     }, [currentLevel, currentExp, targetLevel]);
 
     const unitsResult = useMemo(() => {
-        if (units <= 0 || expPerInterval <= 0) return null;
-        const totalExpGained = units * expPerInterval;
+        if (units <= 0 || expPerInterval <= 0 || intervalMinutes <= 0) return null;
+        const sessions = (units * 60) / intervalMinutes;
+        const totalExpGained = sessions * expPerInterval;
         const startCumExp = getCumulativeExp(currentLevel) + currentExp;
         const finalCumExp = startCumExp + totalExpGained;
         const { level, expIntoLevel, expToNext } = getLevelFromCumExp(finalCumExp);
         const percent = expToNext > 0 ? (expIntoLevel / expToNext) * 100 : 100;
         return { totalExpGained, resultLevel: level, percent, expIntoLevel, expToNext };
-    }, [units, expPerInterval, currentLevel, currentExp]);
+    }, [units, expPerInterval, intervalMinutes, currentLevel, currentExp]);
 
     const daysResult = useMemo(() => {
         if (remaining === null) return null;
@@ -114,7 +115,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
         if (!startDate || !endDate) return null;
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         if (days <= 0) return { error: "結束日期必須晚於開始日期" };
         const expPerDay = Math.ceil(remaining / days);
         const minutesPerDay = (expPerDay / expPerInterval) * intervalMinutes;
@@ -141,14 +142,19 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                     升等要幾天
                 </button>
                 <button className={calcMode === "daily" ? "active" : ""} onClick={() => switchMode("daily")}>
-                    每天要練多少
+                    每天練多少
                 </button>
                 <button className={calcMode === "units" ? "active" : ""} onClick={() => switchMode("units")}>
-                    練了多少％
+                    會升到幾等
                 </button>
             </div>
 
             <div className="form-body">
+                {calcMode === "days" && <span className="sub-label">每天練功 X 小時，幾天後達標</span>}
+                {calcMode === "daily" && <span className="sub-label">在目標時間內，每天要練多少</span>}
+                {calcMode === "units" && (
+                    <span className="sub-label">特定練功時間，會練到幾等(例如：練三天hot time會生到幾等)</span>
+                )}
                 <div className="field">
                     <div className="interval-row">
                         <div className="interval-col">
@@ -247,20 +253,39 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
 
                 {calcMode === "units" && (
                     <div className="field">
-                        <div className="interval-row">
-                            <div className="interval-col">
-                                <span className="sub-label">練幾個單位（1 單位 = {intervalMinutes} 分鐘）</span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={units || ""}
-                                    onChange={(e) => {
-                                        setUnits(Number(e.target.value));
-                                        setHasCalculated(false);
-                                    }}
-                                    onBlur={() => setUnits((v) => Math.max(1, v || 1))}
-                                />
-                            </div>
+                        <div className="daily-hours-row">
+                            <span className="unit-label">練功</span>
+                            <button
+                                className="stepper-btn"
+                                onClick={() => {
+                                    setUnits((h) => Math.max(0.5, +(h - 0.5).toFixed(1)));
+                                    setHasCalculated(false);
+                                }}
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                min={0.5}
+                                step={0.5}
+                                value={units || ""}
+                                style={{ textAlign: "center" }}
+                                onChange={(e) => {
+                                    setUnits(Number(e.target.value));
+                                    setHasCalculated(false);
+                                }}
+                                onBlur={() => setUnits((v) => Math.max(0.5, v || 0.5))}
+                            />
+                            <button
+                                className="stepper-btn"
+                                onClick={() => {
+                                    setUnits((h) => +(h + 0.5).toFixed(1));
+                                    setHasCalculated(false);
+                                }}
+                            >
+                                +
+                            </button>
+                            <span className="unit-label">小時</span>
                         </div>
                     </div>
                 )}
@@ -309,7 +334,7 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
                     !hasCalculated ? (
                         <p className="no-result">點擊計算以查看結果</p>
                     ) : !unitsResult ? (
-                        <p className="no-result">請輸入單位數量</p>
+                        <p className="no-result">請輸入小時數</p>
                     ) : (
                         <div className="result-items">
                             <div className="result-item">
