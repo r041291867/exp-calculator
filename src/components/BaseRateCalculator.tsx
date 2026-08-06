@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { getExpToNext } from "../data/expTable";
 import type { SharedLevelExp } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
@@ -76,27 +76,106 @@ function RateSg({ rate10, rate60, clickable, onRateClick }: RateSgProps) {
     );
 }
 
-interface R2Config {
-    hasDoubleCard: boolean;
-    hasPrayer: boolean;
+interface BuffConfig {
     hasHottime: boolean;
     hottimeMult: number;
     hasAura: boolean;
     auraTriggers: number;
     auraDuration: number;
-    auraMult: number;
+    auraMultiplier: number;
+    hasPrayer: boolean;
+    hasDoubleCard: boolean;
 }
 
-const R2_DEFAULTS: R2Config = {
-    hasDoubleCard: false,
-    hasPrayer: false,
+const BUFF_DEFAULTS: BuffConfig = {
     hasHottime: false,
     hottimeMult: 2,
     hasAura: false,
     auraTriggers: 15,
     auraDuration: 2,
-    auraMult: 2,
+    auraMultiplier: 2,
+    hasPrayer: false,
+    hasDoubleCard: false,
 };
+
+function readJSON<T>(key: string): T | null {
+    try {
+        const item = localStorage.getItem(key);
+        return item !== null ? (JSON.parse(item) as T) : null;
+    } catch {
+        return null;
+    }
+}
+
+const PRIMARY_BUFF_CONFIG_KEY = "base.buffConfig";
+const PRIMARY_LEGACY_KEYS = [
+    "base.hottime",
+    "base.hottimeMult",
+    "base.hasAura",
+    "base.auraTriggers",
+    "base.auraDuration",
+    "base.auraMultiplier",
+    "base.prayer",
+    "base.doubleCard",
+] as const;
+
+function migratePrimaryBuffConfig(): BuffConfig {
+    const existing = readJSON<BuffConfig>(PRIMARY_BUFF_CONFIG_KEY);
+    if (existing) return existing;
+
+    const hasLegacyData = PRIMARY_LEGACY_KEYS.some((key) => localStorage.getItem(key) !== null);
+    if (!hasLegacyData) return BUFF_DEFAULTS;
+
+    const config: BuffConfig = {
+        hasHottime: readJSON<boolean>("base.hottime") ?? BUFF_DEFAULTS.hasHottime,
+        hottimeMult: readJSON<number>("base.hottimeMult") ?? BUFF_DEFAULTS.hottimeMult,
+        hasAura: readJSON<boolean>("base.hasAura") ?? BUFF_DEFAULTS.hasAura,
+        auraTriggers: readJSON<number>("base.auraTriggers") ?? BUFF_DEFAULTS.auraTriggers,
+        auraDuration: readJSON<number>("base.auraDuration") ?? BUFF_DEFAULTS.auraDuration,
+        auraMultiplier: readJSON<number>("base.auraMultiplier") ?? BUFF_DEFAULTS.auraMultiplier,
+        hasPrayer: readJSON<boolean>("base.prayer") ?? BUFF_DEFAULTS.hasPrayer,
+        hasDoubleCard: readJSON<boolean>("base.doubleCard") ?? BUFF_DEFAULTS.hasDoubleCard,
+    };
+
+    PRIMARY_LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+    return config;
+}
+
+const R2_BUFF_CONFIG_KEY = "base.r2.config";
+
+function migrateR2BuffConfig(): BuffConfig {
+    const legacy = readJSON<Record<string, unknown>>(R2_BUFF_CONFIG_KEY);
+    if (!legacy) return BUFF_DEFAULTS;
+
+    if (typeof legacy.auraMultiplier === "number") {
+        return { ...BUFF_DEFAULTS, ...legacy } as BuffConfig;
+    }
+
+    const { auraMult, ...rest } = legacy;
+    return {
+        ...BUFF_DEFAULTS,
+        ...rest,
+        auraMultiplier: typeof auraMult === "number" ? auraMult : BUFF_DEFAULTS.auraMultiplier,
+    } as BuffConfig;
+}
+
+function useBuffConfig(
+    key: string,
+    migrate: () => BuffConfig,
+): [BuffConfig, <K extends keyof BuffConfig>(field: K, value: BuffConfig[K]) => void] {
+    const [config, setConfig] = useState<BuffConfig>(migrate);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(key, JSON.stringify(config));
+        } catch {}
+    }, [key, config]);
+
+    const setField = <K extends keyof BuffConfig>(field: K, value: BuffConfig[K]) =>
+        setConfig((prev) => ({ ...prev, [field]: value }));
+
+    return [config, setField];
+}
 
 export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel, onRateClick }: BaseRateProps) {
     const {
@@ -109,21 +188,12 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     } = useTotalExp(expToNextLevel, 100000, "base");
 
     const [durationMinutes, setDurationMinutes] = useLocalStorage("base.duration", 60);
-    const [hasHottime, setHasHottime] = useLocalStorage("base.hottime", false);
-    const [hottimeMultiplier, setHottimeMultiplier] = useLocalStorage("base.hottimeMult", 2);
-    const [hasAura, setHasAura] = useLocalStorage("base.hasAura", false);
-    const [auraTriggers, setAuraTriggers] = useLocalStorage("base.auraTriggers", 15);
-    const [auraDuration, setAuraDuration] = useLocalStorage("base.auraDuration", 2);
-    const [auraMultiplier, setAuraMultiplier] = useLocalStorage("base.auraMultiplier", 2);
-    const [hasPrayer, setHasPrayer] = useLocalStorage("base.prayer", false);
-    const [hasDoubleCard, setHasDoubleCard] = useLocalStorage("base.doubleCard", false);
     const [onlyEffectiveMult, setOnlyEffectiveMult] = useLocalStorage("base.onlyEffMult", false);
 
-    const [r2Collapsed, setR2Collapsed] = useLocalStorage("base.r2.collapsed", true);
-    const [r2Config, setR2Config] = useLocalStorage<R2Config>("base.r2.config", R2_DEFAULTS);
+    const [buffConfig, setBuffField] = useBuffConfig(PRIMARY_BUFF_CONFIG_KEY, migratePrimaryBuffConfig);
 
-    const setR2 = <K extends keyof R2Config>(key: K, value: R2Config[K]) =>
-        setR2Config((prev) => ({ ...prev, [key]: value }));
+    const [r2Collapsed, setR2Collapsed] = useLocalStorage("base.r2.collapsed", true);
+    const [r2Config, setR2Field] = useBuffConfig(R2_BUFF_CONFIG_KEY, migrateR2BuffConfig);
 
     useEffect(() => {
         setTotalExp(0);
@@ -132,34 +202,13 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
     const result = useMemo(() => {
         if (durationMinutes <= 0) return null;
 
-        const auraTime = calcAuraTime(hasAura, auraTriggers, auraDuration);
+        const auraTime = calcAuraTime(buffConfig.hasAura, buffConfig.auraTriggers, buffConfig.auraDuration);
         if (auraTime > durationMinutes) {
             return { type: "error" as const, msg: `氣場時間（${auraTime} 分）超過統計時間（${durationMinutes} 分）` };
         }
 
-        const effective = calcEffective({
-            hasHottime,
-            hottimeMult: hottimeMultiplier,
-            hasAura,
-            auraTriggers,
-            auraDuration,
-            auraMultiplier,
-            durationMinutes,
-            hasPrayer,
-            hasDoubleCard,
-        });
-
-        const r2Effective = calcEffective({
-            hasHottime: r2Config.hasHottime,
-            hottimeMult: r2Config.hottimeMult,
-            hasAura: r2Config.hasAura,
-            auraTriggers: r2Config.auraTriggers,
-            auraDuration: r2Config.auraDuration,
-            auraMultiplier: r2Config.auraMult,
-            durationMinutes,
-            hasPrayer: r2Config.hasPrayer,
-            hasDoubleCard: r2Config.hasDoubleCard,
-        });
+        const effective = calcEffective({ ...buffConfig, durationMinutes });
+        const r2Effective = calcEffective({ ...r2Config, durationMinutes });
 
         if (onlyEffectiveMult || totalExp <= 0) {
             return { type: "mult-only" as const, effective, r2Effective };
@@ -188,22 +237,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
             r2Rate60,
             minsToLevelUpR2,
         };
-    }, [
-        durationMinutes,
-        totalExp,
-        hasHottime,
-        hottimeMultiplier,
-        hasAura,
-        auraTriggers,
-        auraDuration,
-        auraMultiplier,
-        hasPrayer,
-        hasDoubleCard,
-        r2Config,
-        onlyEffectiveMult,
-        currentLevel,
-        currentExp,
-    ]);
+    }, [durationMinutes, totalExp, buffConfig, r2Config, onlyEffectiveMult, currentLevel, currentExp]);
 
     const clickable = !!onRateClick;
 
@@ -250,35 +284,39 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                     <h2 className="rate-result-title">統計期間倍率設定</h2>
 
                     <div className="rate-col-form">
-                        <PrayerCheckbox checked={hasPrayer} onChange={setHasPrayer} />
-                        <PrayerCheckbox checked={hasDoubleCard} onChange={setHasDoubleCard} label="加倍卷" />
+                        <PrayerCheckbox checked={buffConfig.hasPrayer} onChange={(v) => setBuffField("hasPrayer", v)} />
+                        <PrayerCheckbox
+                            checked={buffConfig.hasDoubleCard}
+                            onChange={(v) => setBuffField("hasDoubleCard", v)}
+                            label="加倍卷"
+                        />
 
                         <HottimeField
-                            checked={hasHottime}
-                            onCheckedChange={setHasHottime}
-                            multiplier={hottimeMultiplier}
-                            onMultiplierChange={setHottimeMultiplier}
+                            checked={buffConfig.hasHottime}
+                            onCheckedChange={(v) => setBuffField("hasHottime", v)}
+                            multiplier={buffConfig.hottimeMult}
+                            onMultiplierChange={(v) => setBuffField("hottimeMult", v)}
                         />
 
                         <div className="field">
                             <label className="prayer-checkbox-row">
                                 <input
                                     type="checkbox"
-                                    checked={hasAura}
-                                    onChange={(e) => setHasAura(e.target.checked)}
+                                    checked={buffConfig.hasAura}
+                                    onChange={(e) => setBuffField("hasAura", e.target.checked)}
                                 />
                                 <span>氣場</span>
                             </label>
                         </div>
 
-                        {hasAura && (
+                        {buffConfig.hasAura && (
                             <AuraFields
-                                triggers={auraTriggers}
-                                onTriggersChange={setAuraTriggers}
-                                duration={auraDuration}
-                                onDurationChange={setAuraDuration}
-                                multiplier={auraMultiplier}
-                                onMultiplierChange={setAuraMultiplier}
+                                triggers={buffConfig.auraTriggers}
+                                onTriggersChange={(v) => setBuffField("auraTriggers", v)}
+                                duration={buffConfig.auraDuration}
+                                onDurationChange={(v) => setBuffField("auraDuration", v)}
+                                multiplier={buffConfig.auraMultiplier}
+                                onMultiplierChange={(v) => setBuffField("auraMultiplier", v)}
                             />
                         )}
                     </div>
@@ -324,18 +362,18 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                             <Tooltip content="例：用統計期間有氣場無祈禱的經驗，推估無氣場有祈禱時的經驗效率" />
                         </h2>
                         <div className="rate-col-form">
-                            <PrayerCheckbox checked={r2Config.hasPrayer} onChange={(v) => setR2("hasPrayer", v)} />
+                            <PrayerCheckbox checked={r2Config.hasPrayer} onChange={(v) => setR2Field("hasPrayer", v)} />
                             <PrayerCheckbox
                                 checked={r2Config.hasDoubleCard}
-                                onChange={(v) => setR2("hasDoubleCard", v)}
+                                onChange={(v) => setR2Field("hasDoubleCard", v)}
                                 label="加倍卷"
                             />
 
                             <HottimeField
                                 checked={r2Config.hasHottime}
-                                onCheckedChange={(v) => setR2("hasHottime", v)}
+                                onCheckedChange={(v) => setR2Field("hasHottime", v)}
                                 multiplier={r2Config.hottimeMult}
-                                onMultiplierChange={(v) => setR2("hottimeMult", v)}
+                                onMultiplierChange={(v) => setR2Field("hottimeMult", v)}
                             />
 
                             <div className="field">
@@ -343,7 +381,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                                     <input
                                         type="checkbox"
                                         checked={r2Config.hasAura}
-                                        onChange={(e) => setR2("hasAura", e.target.checked)}
+                                        onChange={(e) => setR2Field("hasAura", e.target.checked)}
                                     />
                                     <span>氣場</span>
                                 </label>
@@ -352,11 +390,11 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                             {r2Config.hasAura && (
                                 <AuraFields
                                     triggers={r2Config.auraTriggers}
-                                    onTriggersChange={(v) => setR2("auraTriggers", v)}
+                                    onTriggersChange={(v) => setR2Field("auraTriggers", v)}
                                     duration={r2Config.auraDuration}
-                                    onDurationChange={(v) => setR2("auraDuration", v)}
-                                    multiplier={r2Config.auraMult}
-                                    onMultiplierChange={(v) => setR2("auraMult", v)}
+                                    onDurationChange={(v) => setR2Field("auraDuration", v)}
+                                    multiplier={r2Config.auraMultiplier}
+                                    onMultiplierChange={(v) => setR2Field("auraMultiplier", v)}
                                 />
                             )}
                         </div>
