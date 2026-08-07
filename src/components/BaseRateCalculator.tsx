@@ -190,6 +190,9 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                     </div>
                     <button className="r2-toggle-btn" onClick={() => setR2Collapsed(false)}>
                         回推計算
+                        <span className="r2-toggle-chevron" aria-hidden="true">
+                            ›
+                        </span>
                     </button>
                 </div>
             </div>

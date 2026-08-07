@@ -1051,6 +1051,48 @@ select:disabled {
     pointer-events: none;
 }
 
+.r2-toggle-chevron {
+    display: none;
+}
+
+/* ── Rate results: narrow-screen stacked variant ── */
+@media (max-width: 640px) {
+    .rate-results-row {
+        flex-direction: column;
+    }
+
+    .r2-panel {
+        flex: 0 0 auto;
+        max-width: none;
+        max-height: 38px;
+        border-left: none;
+        border-top: 1px solid #2a2a2a;
+        transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .r2-panel--open {
+        max-height: 2000px;
+    }
+
+    .r2-toggle-btn {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        width: auto;
+        height: 38px;
+        writing-mode: horizontal-tb;
+        text-orientation: initial;
+        letter-spacing: normal;
+        gap: 6px;
+    }
+
+    .r2-toggle-chevron {
+        display: inline;
+        font-size: 16px;
+    }
+}
+
 /* ── Simple 2-column rate grid ── */
 .rate-sg {
     display: grid;
