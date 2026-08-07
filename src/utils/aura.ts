@@ -10,6 +10,19 @@ export interface EffectiveConfig {
     hasDoubleCard: boolean;
 }
 
+export type BuffConfig = Omit<EffectiveConfig, "durationMinutes">;
+
+export const BUFF_DEFAULTS: BuffConfig = {
+    hasHottime: false,
+    hottimeMult: 2,
+    hasAura: false,
+    auraTriggers: 15,
+    auraDuration: 2,
+    auraMultiplier: 2,
+    hasPrayer: false,
+    hasDoubleCard: false,
+};
+
 export function calcAuraTime(hasAura: boolean, auraTriggers: number, auraDuration: number): number {
     return hasAura ? auraTriggers * auraDuration : 0;
 }

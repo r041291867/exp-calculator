@@ -19,7 +19,12 @@
       "Bash(tail -60 \"C:\\\\Users\\\\jasontai\\\\AppData\\\\Local\\\\npm-cache\\\\_logs\\\\2026-08-06T09_35_22_137Z-debug-0.log\")",
       "Read(//c/Users/jasontai/AppData/Local/npm-cache/_logs/**)",
       "Bash(sed -i 's/await expInput.blur\\(\\);/await expInput.evaluate\\(el => el.blur\\(\\)\\);/; s/await hoursInput.blur\\(\\);/await hoursInput.evaluate\\(el => el.blur\\(\\)\\);/; s/await durationInput.blur\\(\\);/await durationInput.evaluate\\(el => el.blur\\(\\)\\);/' verify-candidate3.mjs)",
-      "Bash(node verify-candidate3.mjs)"
+      "Bash(node verify-candidate3.mjs)",
+      "Bash(echo \"EXIT1=$?\")",
+      "Bash(echo \"EXIT2=$?\")",
+      "Bash(git checkout *)",
+      "Bash(echo \"REAL_EXIT=$?\")",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -1,27 +1,5 @@
 import { minutesToLevelUp } from "../data/expTable";
-import { calcEffective, calcAuraTime } from "../utils/aura";
-
-export interface BuffConfig {
-    hasHottime: boolean;
-    hottimeMult: number;
-    hasAura: boolean;
-    auraTriggers: number;
-    auraDuration: number;
-    auraMultiplier: number;
-    hasPrayer: boolean;
-    hasDoubleCard: boolean;
-}
-
-export const BUFF_DEFAULTS: BuffConfig = {
-    hasHottime: false,
-    hottimeMult: 2,
-    hasAura: false,
-    auraTriggers: 15,
-    auraDuration: 2,
-    auraMultiplier: 2,
-    hasPrayer: false,
-    hasDoubleCard: false,
-};
+import { calcEffective, calcAuraTime, type BuffConfig, BUFF_DEFAULTS } from "../utils/aura";
 
 export function readJSON<T>(key: string): T | null {
     try {

@@ -4,12 +4,11 @@ import { useTotalExp } from "../hooks/useTotalExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatNumber, formatMins } from "../utils/format";
 import ExpAmountField from "./shared/ExpAmountField";
-import AuraFields from "./shared/AuraFields";
-import PrayerCheckbox from "./shared/PrayerCheckbox";
 import CollapsibleCard from "./shared/CollapsibleCard";
 import Tooltip from "./shared/Tooltip";
+import BuffConfigFields from "./shared/BuffConfigFields";
+import type { BuffConfig } from "../utils/aura";
 import {
-    type BuffConfig,
     PRIMARY_BUFF_CONFIG_KEY,
     migratePrimaryBuffConfig,
     R2_BUFF_CONFIG_KEY,
@@ -19,39 +18,6 @@ import {
 
 interface BaseRateProps extends LevelExpView {
     onRateClick?: (mins: number, exp: number) => void;
-}
-
-interface HottimeFieldProps {
-    checked: boolean;
-    onCheckedChange: (v: boolean) => void;
-    multiplier: number;
-    onMultiplierChange: (v: number) => void;
-}
-
-function HottimeField({ checked, onCheckedChange, multiplier, onMultiplierChange }: HottimeFieldProps) {
-    return (
-        <div className="field">
-            <div className="buff-row">
-                <label className="prayer-checkbox-row">
-                    <input type="checkbox" checked={checked} onChange={(e) => onCheckedChange(e.target.checked)} />
-                    <span>Hot Time</span>
-                </label>
-                {checked && (
-                    <div className="buff-inline-input">
-                        <input
-                            type="number"
-                            min={1}
-                            step={0.25}
-                            value={multiplier || ""}
-                            onChange={(e) => onMultiplierChange(Number(e.target.value))}
-                            onBlur={() => onMultiplierChange(Math.max(1, multiplier || 1))}
-                        />
-                        <span className="unit-label">倍</span>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
 }
 
 interface RateSgProps {
@@ -171,43 +137,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                 <div className="rate-col">
                     <h2 className="rate-result-title">統計期間倍率設定</h2>
 
-                    <div className="rate-col-form">
-                        <PrayerCheckbox checked={buffConfig.hasPrayer} onChange={(v) => setBuffField("hasPrayer", v)} />
-                        <PrayerCheckbox
-                            checked={buffConfig.hasDoubleCard}
-                            onChange={(v) => setBuffField("hasDoubleCard", v)}
-                            label="加倍卷"
-                        />
-
-                        <HottimeField
-                            checked={buffConfig.hasHottime}
-                            onCheckedChange={(v) => setBuffField("hasHottime", v)}
-                            multiplier={buffConfig.hottimeMult}
-                            onMultiplierChange={(v) => setBuffField("hottimeMult", v)}
-                        />
-
-                        <div className="field">
-                            <label className="prayer-checkbox-row">
-                                <input
-                                    type="checkbox"
-                                    checked={buffConfig.hasAura}
-                                    onChange={(e) => setBuffField("hasAura", e.target.checked)}
-                                />
-                                <span>氣場</span>
-                            </label>
-                        </div>
-
-                        {buffConfig.hasAura && (
-                            <AuraFields
-                                triggers={buffConfig.auraTriggers}
-                                onTriggersChange={(v) => setBuffField("auraTriggers", v)}
-                                duration={buffConfig.auraDuration}
-                                onDurationChange={(v) => setBuffField("auraDuration", v)}
-                                multiplier={buffConfig.auraMultiplier}
-                                onMultiplierChange={(v) => setBuffField("auraMultiplier", v)}
-                            />
-                        )}
-                    </div>
+                    <BuffConfigFields config={buffConfig} setField={setBuffField} />
 
                     {result && (result.type === "ok" || result.type === "mult-only") && (
                         <div className="rate-col-mult">
@@ -249,43 +179,7 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
                             不同倍率回推
                             <Tooltip content="例：用統計期間有氣場無祈禱的經驗，推估無氣場有祈禱時的經驗效率" />
                         </h2>
-                        <div className="rate-col-form">
-                            <PrayerCheckbox checked={r2Config.hasPrayer} onChange={(v) => setR2Field("hasPrayer", v)} />
-                            <PrayerCheckbox
-                                checked={r2Config.hasDoubleCard}
-                                onChange={(v) => setR2Field("hasDoubleCard", v)}
-                                label="加倍卷"
-                            />
-
-                            <HottimeField
-                                checked={r2Config.hasHottime}
-                                onCheckedChange={(v) => setR2Field("hasHottime", v)}
-                                multiplier={r2Config.hottimeMult}
-                                onMultiplierChange={(v) => setR2Field("hottimeMult", v)}
-                            />
-
-                            <div className="field">
-                                <label className="prayer-checkbox-row">
-                                    <input
-                                        type="checkbox"
-                                        checked={r2Config.hasAura}
-                                        onChange={(e) => setR2Field("hasAura", e.target.checked)}
-                                    />
-                                    <span>氣場</span>
-                                </label>
-                            </div>
-
-                            {r2Config.hasAura && (
-                                <AuraFields
-                                    triggers={r2Config.auraTriggers}
-                                    onTriggersChange={(v) => setR2Field("auraTriggers", v)}
-                                    duration={r2Config.auraDuration}
-                                    onDurationChange={(v) => setR2Field("auraDuration", v)}
-                                    multiplier={r2Config.auraMultiplier}
-                                    onMultiplierChange={(v) => setR2Field("auraMultiplier", v)}
-                                />
-                            )}
-                        </div>
+                        <BuffConfigFields config={r2Config} setField={setR2Field} />
 
                         {result && (result.type === "ok" || result.type === "mult-only") && (
                             <div className="rate-col-mult">

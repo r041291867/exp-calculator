@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-    BUFF_DEFAULTS,
-    migratePrimaryBuffConfig,
-    migrateR2BuffConfig,
-    computeBaseRateResult,
-    type BuffConfig,
-} from "./BaseRateCalculator.calc";
+import { BUFF_DEFAULTS, type BuffConfig } from "../utils/aura";
+import { migratePrimaryBuffConfig, migrateR2BuffConfig, computeBaseRateResult } from "./BaseRateCalculator.calc";
 
 function makeMemoryStorage(): Storage {
     const store = new Map<string, string>();
