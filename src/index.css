@@ -872,8 +872,9 @@ select:disabled {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    height: 41px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    min-height: 41px;
 }
 
 .buff-inline-input {
@@ -885,6 +886,39 @@ select:disabled {
 
 .buff-inline-input input[type="number"] {
     width: 80px;
+}
+
+/* ── Prayer / double-card checkboxes side by side ── */
+.buff-checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+}
+
+.buff-checkbox-row .field {
+    gap: 0;
+}
+
+/* ── Aura fields inline (next to the "氣場" checkbox) ── */
+.aura-inline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.aura-inline input[type="number"] {
+    width: 44px;
+    padding: 6px 4px;
+    text-align: center;
+}
+
+.aura-inline-unit {
+    font-size: 12px;
+    color: #666;
+    white-space: nowrap;
 }
 
 /* ── Rate results side-by-side layout ── */
@@ -1074,6 +1108,111 @@ select:disabled {
     font-size: 18px;
     font-weight: 700;
     color: #f0c060;
+}
+
+/* ── Session config cards (multi practice-session setup) ── */
+.session-config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.session-config-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.session-config-steppers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+}
+
+.session-config-steppers > .daily-hours-row {
+    flex: 1 1 180px;
+}
+
+.session-config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.session-config-title {
+    font-size: 12px;
+    color: #888;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+}
+
+.session-config-remove {
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 4px;
+    transition:
+        color 0.15s,
+        background 0.15s;
+}
+
+.session-config-remove:hover {
+    color: #e05d5d;
+    background: #2a2a2a;
+}
+
+.session-add-btn {
+    background: #242424;
+    border: 1px dashed #3a3a3a;
+    border-radius: 8px;
+    color: #999;
+    font-size: 13px;
+    padding: 10px;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
+}
+
+.session-add-btn:hover {
+    background: #2a2a2a;
+    color: #ccc;
+    border-color: #4a4a4a;
+}
+
+/* ── Session breakdown (per-config exp contribution) ── */
+.session-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 22px 18px;
+}
+
+.session-breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.session-breakdown-label {
+    color: #888;
+}
+
+.session-breakdown-value {
+    color: #ccc;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 /* ── Scrollbar ── */

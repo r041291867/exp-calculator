@@ -3,9 +3,25 @@ import { flushSync } from "react-dom";
 import { EXP_TABLE } from "../data/expTable";
 import type { LevelExpView } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { usePersistedState } from "../hooks/usePersistedState";
+import { useBuffConfig } from "../hooks/useBuffConfig";
 import { formatNumber, formatMins } from "../utils/format";
+import type { BuffConfig } from "../utils/aura";
 import CollapsibleCard from "./shared/CollapsibleCard";
-import { formatByDailyHours, calcRemaining, calcUnitsResult, calcDaysResult, calcDailyResult } from "./Calculator.calc";
+import BuffConfigFields from "./shared/BuffConfigFields";
+import {
+    formatByDailyHours,
+    calcRemaining,
+    calcUnitsResult,
+    calcDaysResult,
+    calcDailyResult,
+    calcSessionEffective,
+    makeSessionConfig,
+    migrateSessions,
+    migrateRefBuffConfig,
+    REF_BUFF_CONFIG_KEY,
+    SESSIONS_KEY,
+} from "./Calculator.calc";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 const TARGET_LEVEL_OPTIONS = EXP_TABLE.slice(1);
@@ -27,9 +43,32 @@ const Calculator = forwardRef<CalcHandle, LevelExpView>(function Calculator({ cu
     const [dailyHours, setDailyHours] = useLocalStorage("calc.dailyHours", 2);
     const [startDate, setStartDate] = useLocalStorage("calc.startDate", getTodayStr());
     const [endDate, setEndDate] = useLocalStorage("calc.endDate", "");
-    const [units, setUnits] = useLocalStorage("calc.hours", 1);
+    const [refBuffConfig, setRefBuffField] = useBuffConfig(REF_BUFF_CONFIG_KEY, migrateRefBuffConfig);
+    const [sessions, setSessions] = usePersistedState(SESSIONS_KEY, migrateSessions);
     const [hasCalculated, setHasCalculated] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
+
+    function addSession() {
+        setSessions((prev) => [...prev, makeSessionConfig()]);
+        setHasCalculated(false);
+    }
+
+    function removeSession(id: string) {
+        setSessions((prev) => (prev.length <= 1 ? prev : prev.filter((s) => s.id !== id)));
+        setHasCalculated(false);
+    }
+
+    function updateSession(id: string, patch: Partial<{ hours: number; loops: number }>) {
+        setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+        setHasCalculated(false);
+    }
+
+    function setSessionBuffField<K extends keyof BuffConfig>(id: string, field: K, value: BuffConfig[K]) {
+        setSessions((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, buffConfig: { ...s.buffConfig, [field]: value } } : s)),
+        );
+        setHasCalculated(false);
+    }
 
     useImperativeHandle(ref, () => ({
         activate(mins: number, exp: number) {
@@ -58,8 +97,8 @@ const Calculator = forwardRef<CalcHandle, LevelExpView>(function Calculator({ cu
     );
 
     const unitsResult = useMemo(
-        () => calcUnitsResult(units, expPerInterval, intervalMinutes, currentLevel, currentExp),
-        [units, expPerInterval, intervalMinutes, currentLevel, currentExp],
+        () => calcUnitsResult(sessions, expPerInterval, intervalMinutes, refBuffConfig, currentLevel, currentExp),
+        [sessions, expPerInterval, intervalMinutes, refBuffConfig, currentLevel, currentExp],
     );
 
     const daysResult = useMemo(
@@ -203,40 +242,130 @@ const Calculator = forwardRef<CalcHandle, LevelExpView>(function Calculator({ cu
 
                 {calcMode === "units" && (
                     <div className="field">
-                        <div className="daily-hours-row">
-                            <span className="unit-label">練功</span>
-                            <button
-                                className="stepper-btn"
-                                onClick={() => {
-                                    setUnits((h) => Math.max(0.5, +(h - 0.5).toFixed(1)));
-                                    setHasCalculated(false);
-                                }}
-                            >
-                                −
-                            </button>
-                            <input
-                                type="number"
-                                min={0.5}
-                                step={0.5}
-                                value={units || ""}
-                                style={{ textAlign: "center" }}
-                                onChange={(e) => {
-                                    setUnits(Number(e.target.value));
-                                    setHasCalculated(false);
-                                }}
-                                onBlur={() => setUnits((v) => Math.max(0.5, v || 0.5))}
-                            />
-                            <button
-                                className="stepper-btn"
-                                onClick={() => {
-                                    setUnits((h) => +(h + 0.5).toFixed(1));
-                                    setHasCalculated(false);
-                                }}
-                            >
-                                +
-                            </button>
-                            <span className="unit-label">小時</span>
+                        <label>此效率是否包含以下加成</label>
+                        <BuffConfigFields config={refBuffConfig} setField={setRefBuffField} />
+                    </div>
+                )}
+
+                {calcMode === "units" && (
+                    <div className="field">
+                        <label>練功設定</label>
+                        <div className="session-config-list">
+                            {sessions.map((session, idx) => {
+                                const effective = calcSessionEffective(session.buffConfig, session.hours);
+                                return (
+                                    <div className="session-config-card" key={session.id}>
+                                        <div className="session-config-header">
+                                            <span className="session-config-title">設定 {idx + 1}</span>
+                                            {sessions.length > 1 && (
+                                                <button
+                                                    className="session-config-remove"
+                                                    onClick={() => removeSession(session.id)}
+                                                    aria-label="刪除這組設定"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <BuffConfigFields
+                                            config={session.buffConfig}
+                                            setField={(field, value) => setSessionBuffField(session.id, field, value)}
+                                        />
+
+                                        <div className="session-config-steppers">
+                                            <div className="daily-hours-row">
+                                                <span className="unit-label">練功</span>
+                                                <button
+                                                    className="stepper-btn"
+                                                    onClick={() =>
+                                                        updateSession(session.id, {
+                                                            hours: Math.max(0.5, +(session.hours - 0.5).toFixed(1)),
+                                                        })
+                                                    }
+                                                >
+                                                    −
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min={0.5}
+                                                    step={0.5}
+                                                    value={session.hours || ""}
+                                                    style={{ textAlign: "center" }}
+                                                    onChange={(e) =>
+                                                        updateSession(session.id, { hours: Number(e.target.value) })
+                                                    }
+                                                    onBlur={() =>
+                                                        updateSession(session.id, {
+                                                            hours: Math.max(0.5, session.hours || 0.5),
+                                                        })
+                                                    }
+                                                />
+                                                <button
+                                                    className="stepper-btn"
+                                                    onClick={() =>
+                                                        updateSession(session.id, {
+                                                            hours: +(session.hours + 0.5).toFixed(1),
+                                                        })
+                                                    }
+                                                >
+                                                    +
+                                                </button>
+                                                <span className="unit-label">小時</span>
+                                            </div>
+
+                                            <div className="daily-hours-row">
+                                                <span className="unit-label">Loop</span>
+                                                <button
+                                                    className="stepper-btn"
+                                                    onClick={() =>
+                                                        updateSession(session.id, {
+                                                            loops: Math.max(1, session.loops - 1),
+                                                        })
+                                                    }
+                                                >
+                                                    −
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    step={1}
+                                                    value={session.loops || ""}
+                                                    style={{ textAlign: "center" }}
+                                                    onChange={(e) =>
+                                                        updateSession(session.id, {
+                                                            loops: Math.round(Number(e.target.value)),
+                                                        })
+                                                    }
+                                                    onBlur={() =>
+                                                        updateSession(session.id, {
+                                                            loops: Math.max(1, Math.round(session.loops) || 1),
+                                                        })
+                                                    }
+                                                />
+                                                <button
+                                                    className="stepper-btn"
+                                                    onClick={() =>
+                                                        updateSession(session.id, { loops: session.loops + 1 })
+                                                    }
+                                                >
+                                                    +
+                                                </button>
+                                                <span className="unit-label">次</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="rate-col-mult">
+                                            <span className="effective-mult-label">等效倍率</span>
+                                            <span className="effective-mult-value">×{effective.toFixed(3)}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
+                        <button className="session-add-btn" onClick={addSession}>
+                            ＋ 新增設定
+                        </button>
                     </div>
                 )}
 
@@ -301,6 +430,19 @@ const Calculator = forwardRef<CalcHandle, LevelExpView>(function Calculator({ cu
                                     {formatNumber(unitsResult.expIntoLevel)} / {formatNumber(unitsResult.expToNext)}{" "}
                                     經驗
                                 </span>
+                            </div>
+                            <div className="divider" />
+                            <div className="session-breakdown">
+                                {unitsResult.contributions.map((c, idx) => (
+                                    <div className="session-breakdown-row" key={c.id}>
+                                        <span className="session-breakdown-label">
+                                            設定 {idx + 1}（×{c.effective.toFixed(3)}）
+                                        </span>
+                                        <span className="session-breakdown-value">
+                                            {formatNumber(c.expGained)} 經驗
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )

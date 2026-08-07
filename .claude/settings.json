@@ -24,7 +24,9 @@
       "Bash(echo \"EXIT2=$?\")",
       "Bash(git checkout *)",
       "Bash(echo \"REAL_EXIT=$?\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npx vitest *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

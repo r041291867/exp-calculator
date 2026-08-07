@@ -1,13 +1,13 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect } from "react";
 import type { LevelExpView } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useBuffConfig } from "../hooks/useBuffConfig";
 import { formatNumber, formatMins } from "../utils/format";
 import ExpAmountField from "./shared/ExpAmountField";
 import CollapsibleCard from "./shared/CollapsibleCard";
 import Tooltip from "./shared/Tooltip";
 import BuffConfigFields from "./shared/BuffConfigFields";
-import type { BuffConfig } from "../utils/aura";
 import {
     PRIMARY_BUFF_CONFIG_KEY,
     migratePrimaryBuffConfig,
@@ -46,24 +46,6 @@ function RateSg({ rate10, rate60, clickable, onRateClick }: RateSgProps) {
             </div>
         </div>
     );
-}
-
-function useBuffConfig(
-    key: string,
-    migrate: () => BuffConfig,
-): [BuffConfig, <K extends keyof BuffConfig>(field: K, value: BuffConfig[K]) => void] {
-    const [config, setConfig] = useState<BuffConfig>(migrate);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(key, JSON.stringify(config));
-        } catch {}
-    }, [key, config]);
-
-    const setField = <K extends keyof BuffConfig>(field: K, value: BuffConfig[K]) =>
-        setConfig((prev) => ({ ...prev, [field]: value }));
-
-    return [config, setField];
 }
 
 export default function BaseRateCalculator({ currentLevel, currentExp, expToNextLevel, onRateClick }: BaseRateProps) {
