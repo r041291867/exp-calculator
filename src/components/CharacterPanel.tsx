@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { SharedLevelExp } from "../hooks/useLevelExp";
+import type { LevelExpOwner } from "../hooks/useLevelExp";
 import LevelExpField from "./shared/LevelExpField";
 import LevelTableDialog from "./LevelTableDialog";
 
-export default function CharacterPanel(props: SharedLevelExp) {
+export default function CharacterPanel(props: LevelExpOwner) {
     const { setCurrentLevel, setCurrentExp, ...rest } = props;
     const [dialogOpen, setDialogOpen] = useState(false);
 

@@ -223,3 +223,27 @@ export function getExpToNext(level: number): number {
 export function getCumulativeExp(level: number): number {
   return EXP_MAP.get(level)?.cumulativeExp ?? 0;
 }
+
+export function getLevelFromCumExp(cumExp: number): { level: number; expIntoLevel: number; expToNext: number } {
+  let lo = 0;
+  let hi = EXP_TABLE.length - 1;
+  let resultIndex = 0;
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (EXP_TABLE[mid].cumulativeExp <= cumExp) {
+      resultIndex = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  const entry = EXP_TABLE[resultIndex];
+  return { level: entry.level, expIntoLevel: cumExp - entry.cumulativeExp, expToNext: entry.expToNext };
+}
+
+export function minutesToLevelUp(currentLevel: number, currentExp: number, ratePerMinute: number): number {
+  const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
+  return remaining > 0 && ratePerMinute > 0 ? Math.ceil(remaining / ratePerMinute) : 0;
+}

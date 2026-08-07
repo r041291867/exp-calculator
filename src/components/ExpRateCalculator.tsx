@@ -1,6 +1,5 @@
 import { useMemo, useEffect } from "react";
-import { getExpToNext } from "../data/expTable";
-import type { SharedLevelExp } from "../hooks/useLevelExp";
+import type { LevelExpView } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatMins } from "../utils/format";
@@ -8,10 +7,9 @@ import ExpAmountField from "./shared/ExpAmountField";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import RateResultGrid from "./shared/RateResultGrid";
 import CollapsibleCard from "./shared/CollapsibleCard";
+import { computeExpRateResult } from "./ExpRateCalculator.calc";
 
-const PRAYER_MULT = 1.25;
-
-export default function ExpRateCalculator({ currentLevel, currentExp, expToNextLevel }: SharedLevelExp) {
+export default function ExpRateCalculator({ currentLevel, currentExp, expToNextLevel }: LevelExpView) {
     const {
         totalExp,
         setTotalExp,
@@ -28,21 +26,10 @@ export default function ExpRateCalculator({ currentLevel, currentExp, expToNextL
         setTotalExp(0);
     }, [currentLevel]);
 
-    const result = useMemo(() => {
-        if (durationMinutes <= 0 || totalExp <= 0) return null;
-
-        const basePerMin = hasPrayer ? totalExp / PRAYER_MULT / durationMinutes : totalExp / durationMinutes;
-
-        const noPrayer10 = Math.round(basePerMin * 10);
-        const noPrayer60 = Math.round(basePerMin * 60);
-        const withPrayer10 = Math.round(basePerMin * PRAYER_MULT * 10);
-        const withPrayer60 = Math.round(basePerMin * PRAYER_MULT * 60);
-
-        const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
-        const minsToLevelUp = remaining > 0 ? Math.ceil(remaining / basePerMin) : 0;
-
-        return { noPrayer10, noPrayer60, withPrayer10, withPrayer60, minsToLevelUp };
-    }, [durationMinutes, totalExp, hasPrayer, currentLevel, currentExp]);
+    const result = useMemo(
+        () => computeExpRateResult(durationMinutes, totalExp, hasPrayer, currentLevel, currentExp),
+        [durationMinutes, totalExp, hasPrayer, currentLevel, currentExp],
+    );
 
     return (
         <CollapsibleCard storageKey="rate.collapsed" icon="⚡" title="經驗效率計算">

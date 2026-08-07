@@ -1,17 +1,23 @@
 import { useMemo, useEffect, useState } from "react";
-import { getExpToNext } from "../data/expTable";
-import type { SharedLevelExp } from "../hooks/useLevelExp";
+import type { LevelExpView } from "../hooks/useLevelExp";
 import { useTotalExp } from "../hooks/useTotalExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatNumber, formatMins } from "../utils/format";
-import { calcEffective, calcAuraTime } from "../utils/aura";
 import ExpAmountField from "./shared/ExpAmountField";
 import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import CollapsibleCard from "./shared/CollapsibleCard";
 import Tooltip from "./shared/Tooltip";
+import {
+    type BuffConfig,
+    PRIMARY_BUFF_CONFIG_KEY,
+    migratePrimaryBuffConfig,
+    R2_BUFF_CONFIG_KEY,
+    migrateR2BuffConfig,
+    computeBaseRateResult,
+} from "./BaseRateCalculator.calc";
 
-interface BaseRateProps extends SharedLevelExp {
+interface BaseRateProps extends LevelExpView {
     onRateClick?: (mins: number, exp: number) => void;
 }
 
@@ -76,89 +82,6 @@ function RateSg({ rate10, rate60, clickable, onRateClick }: RateSgProps) {
     );
 }
 
-interface BuffConfig {
-    hasHottime: boolean;
-    hottimeMult: number;
-    hasAura: boolean;
-    auraTriggers: number;
-    auraDuration: number;
-    auraMultiplier: number;
-    hasPrayer: boolean;
-    hasDoubleCard: boolean;
-}
-
-const BUFF_DEFAULTS: BuffConfig = {
-    hasHottime: false,
-    hottimeMult: 2,
-    hasAura: false,
-    auraTriggers: 15,
-    auraDuration: 2,
-    auraMultiplier: 2,
-    hasPrayer: false,
-    hasDoubleCard: false,
-};
-
-function readJSON<T>(key: string): T | null {
-    try {
-        const item = localStorage.getItem(key);
-        return item !== null ? (JSON.parse(item) as T) : null;
-    } catch {
-        return null;
-    }
-}
-
-const PRIMARY_BUFF_CONFIG_KEY = "base.buffConfig";
-const PRIMARY_LEGACY_KEYS = [
-    "base.hottime",
-    "base.hottimeMult",
-    "base.hasAura",
-    "base.auraTriggers",
-    "base.auraDuration",
-    "base.auraMultiplier",
-    "base.prayer",
-    "base.doubleCard",
-] as const;
-
-function migratePrimaryBuffConfig(): BuffConfig {
-    const existing = readJSON<BuffConfig>(PRIMARY_BUFF_CONFIG_KEY);
-    if (existing) return existing;
-
-    const hasLegacyData = PRIMARY_LEGACY_KEYS.some((key) => localStorage.getItem(key) !== null);
-    if (!hasLegacyData) return BUFF_DEFAULTS;
-
-    const config: BuffConfig = {
-        hasHottime: readJSON<boolean>("base.hottime") ?? BUFF_DEFAULTS.hasHottime,
-        hottimeMult: readJSON<number>("base.hottimeMult") ?? BUFF_DEFAULTS.hottimeMult,
-        hasAura: readJSON<boolean>("base.hasAura") ?? BUFF_DEFAULTS.hasAura,
-        auraTriggers: readJSON<number>("base.auraTriggers") ?? BUFF_DEFAULTS.auraTriggers,
-        auraDuration: readJSON<number>("base.auraDuration") ?? BUFF_DEFAULTS.auraDuration,
-        auraMultiplier: readJSON<number>("base.auraMultiplier") ?? BUFF_DEFAULTS.auraMultiplier,
-        hasPrayer: readJSON<boolean>("base.prayer") ?? BUFF_DEFAULTS.hasPrayer,
-        hasDoubleCard: readJSON<boolean>("base.doubleCard") ?? BUFF_DEFAULTS.hasDoubleCard,
-    };
-
-    PRIMARY_LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
-    return config;
-}
-
-const R2_BUFF_CONFIG_KEY = "base.r2.config";
-
-function migrateR2BuffConfig(): BuffConfig {
-    const legacy = readJSON<Record<string, unknown>>(R2_BUFF_CONFIG_KEY);
-    if (!legacy) return BUFF_DEFAULTS;
-
-    if (typeof legacy.auraMultiplier === "number") {
-        return { ...BUFF_DEFAULTS, ...legacy } as BuffConfig;
-    }
-
-    const { auraMult, ...rest } = legacy;
-    return {
-        ...BUFF_DEFAULTS,
-        ...rest,
-        auraMultiplier: typeof auraMult === "number" ? auraMult : BUFF_DEFAULTS.auraMultiplier,
-    } as BuffConfig;
-}
-
 function useBuffConfig(
     key: string,
     migrate: () => BuffConfig,
@@ -199,45 +122,10 @@ export default function BaseRateCalculator({ currentLevel, currentExp, expToNext
         setTotalExp(0);
     }, [currentLevel]);
 
-    const result = useMemo(() => {
-        if (durationMinutes <= 0) return null;
-
-        const auraTime = calcAuraTime(buffConfig.hasAura, buffConfig.auraTriggers, buffConfig.auraDuration);
-        if (auraTime > durationMinutes) {
-            return { type: "error" as const, msg: `氣場時間（${auraTime} 分）超過統計時間（${durationMinutes} 分）` };
-        }
-
-        const effective = calcEffective({ ...buffConfig, durationMinutes });
-        const r2Effective = calcEffective({ ...r2Config, durationMinutes });
-
-        if (onlyEffectiveMult || totalExp <= 0) {
-            return { type: "mult-only" as const, effective, r2Effective };
-        }
-
-        const base1xPerMin = totalExp / durationMinutes / effective;
-        const spot10 = Math.round(base1xPerMin * effective * 10);
-        const spot60 = Math.round(base1xPerMin * effective * 60);
-
-        const r2Rate = base1xPerMin * r2Effective;
-        const r2Rate10 = Math.round(r2Rate * 10);
-        const r2Rate60 = Math.round(r2Rate * 60);
-
-        const remaining = Math.max(0, getExpToNext(currentLevel) - currentExp);
-        const minsToLevelUpSpot = remaining > 0 ? Math.ceil(remaining / (base1xPerMin * effective)) : 0;
-        const minsToLevelUpR2 = remaining > 0 && r2Rate > 0 ? Math.ceil(remaining / r2Rate) : 0;
-
-        return {
-            type: "ok" as const,
-            effective,
-            spot10,
-            spot60,
-            minsToLevelUpSpot,
-            r2Effective,
-            r2Rate10,
-            r2Rate60,
-            minsToLevelUpR2,
-        };
-    }, [durationMinutes, totalExp, buffConfig, r2Config, onlyEffectiveMult, currentLevel, currentExp]);
+    const result = useMemo(
+        () => computeBaseRateResult(buffConfig, r2Config, durationMinutes, totalExp, onlyEffectiveMult, currentLevel, currentExp),
+        [durationMinutes, totalExp, buffConfig, r2Config, onlyEffectiveMult, currentLevel, currentExp],
+    );
 
     const clickable = !!onRateClick;
 

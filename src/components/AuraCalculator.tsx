@@ -3,6 +3,7 @@ import AuraFields from "./shared/AuraFields";
 import PrayerCheckbox from "./shared/PrayerCheckbox";
 import CollapsibleCard from "./shared/CollapsibleCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { computeAuraResult } from "./AuraCalculator.calc";
 
 export default function AuraCalculator() {
     const [totalTime, setTotalTime] = useLocalStorage("aura.totalTime", 60);
@@ -11,22 +12,10 @@ export default function AuraCalculator() {
     const [auraMultiplier, setAuraMultiplier] = useLocalStorage("aura.multiplier", 2);
     const [hasPrayer, setHasPrayer] = useLocalStorage("aura.prayer", false);
 
-    const result = useMemo(() => {
-        if (totalTime <= 0) return null;
-
-        const auraTime = auraDuration * auraTriggers;
-        const nonAuraTime = totalTime - auraTime;
-
-        if (nonAuraTime < 0) {
-            return { valid: false as const, auraTime };
-        }
-
-        const avgWithoutPrayer = (nonAuraTime * 1 + auraTime * auraMultiplier) / totalTime;
-        const effective = avgWithoutPrayer + (hasPrayer ? 0.25 : 0);
-        const auraPercent = Math.round((auraTime / totalTime) * 100);
-
-        return { valid: true as const, effective, avgWithoutPrayer, auraTime, auraPercent };
-    }, [totalTime, auraTriggers, auraDuration, auraMultiplier, hasPrayer]);
+    const result = useMemo(
+        () => computeAuraResult(totalTime, auraTriggers, auraDuration, auraMultiplier, hasPrayer),
+        [totalTime, auraTriggers, auraDuration, auraMultiplier, hasPrayer],
+    );
 
     return (
         <CollapsibleCard storageKey="aura.collapsed" icon="✨" title="氣場等效倍率計算">

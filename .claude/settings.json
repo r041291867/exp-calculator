@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Date -Format yyyyMMdd-HHmmss\")",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(git stash *)",
+      "Bash(where chromium-cli *)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"console.log\\(require\\('playwright/package.json'\\).version\\)\")",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(npx --yes tsx -e ' *)",
+      "Bash(lsof -ti:5175 -sTCP:LISTEN)",
+      "Bash(xargs -r kill)",
+      "Bash(node \"C:\\\\Users\\\\jasontai\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-jasontai-Work-exp-calculator\\\\9556ffa9-c89a-4d23-9248-4e377ae0cd91\\\\scratchpad\\\\verify-aura-math.mjs\")",
+      "Bash(node --experimental-strip-types -e ' *)",
+      "Bash(tail -60 \"C:\\\\Users\\\\jasontai\\\\AppData\\\\Local\\\\npm-cache\\\\_logs\\\\2026-08-06T09_35_22_137Z-debug-0.log\")",
+      "Read(//c/Users/jasontai/AppData/Local/npm-cache/_logs/**)",
+      "Bash(sed -i 's/await expInput.blur\\(\\);/await expInput.evaluate\\(el => el.blur\\(\\)\\);/; s/await hoursInput.blur\\(\\);/await hoursInput.evaluate\\(el => el.blur\\(\\)\\);/; s/await durationInput.blur\\(\\);/await durationInput.evaluate\\(el => el.blur\\(\\)\\);/' verify-candidate3.mjs)",
+      "Bash(node verify-candidate3.mjs)"
+    ]
+  }
+}

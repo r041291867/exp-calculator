@@ -32,4 +32,6 @@ export function useLevelExp() {
     };
 }
 
-export type SharedLevelExp = ReturnType<typeof useLevelExp>;
+export type LevelExpOwner = ReturnType<typeof useLevelExp>;
+
+export type LevelExpView = Pick<LevelExpOwner, "currentLevel" | "currentExp" | "expToNextLevel">;

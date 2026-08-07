@@ -1,57 +1,24 @@
 import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { flushSync } from "react-dom";
-import { EXP_TABLE, getCumulativeExp, getExpToNext } from "../data/expTable";
-import type { SharedLevelExp } from "../hooks/useLevelExp";
+import { EXP_TABLE } from "../data/expTable";
+import type { LevelExpView } from "../hooks/useLevelExp";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { formatNumber, formatMins } from "../utils/format";
 import CollapsibleCard from "./shared/CollapsibleCard";
+import { formatByDailyHours, calcRemaining, calcUnitsResult, calcDaysResult, calcDailyResult } from "./Calculator.calc";
 
 const TIME_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
 const TARGET_LEVEL_OPTIONS = EXP_TABLE.slice(1);
 
-function getLevelFromCumExp(cumExp: number): { level: number; expIntoLevel: number; expToNext: number } {
-    let resultLevel = 1;
-    let resultCumExp = 0;
-    for (let i = 0; i < EXP_TABLE.length; i++) {
-        if (EXP_TABLE[i].cumulativeExp > cumExp) break;
-        resultLevel = EXP_TABLE[i].level;
-        resultCumExp = EXP_TABLE[i].cumulativeExp;
-    }
-    const expToNext = getExpToNext(resultLevel);
-    return { level: resultLevel, expIntoLevel: cumExp - resultCumExp, expToNext };
-}
-
 function getTodayStr(): string {
     return new Date().toISOString().slice(0, 10);
-}
-
-function formatByDailyHours(totalMinutes: number, dailyHours: number): string {
-    if (totalMinutes <= 0) return "0 分鐘";
-    const total = Math.ceil(totalMinutes);
-    const dailyMins = Math.round(dailyHours * 60);
-    const fullDays = Math.floor(total / dailyMins);
-    const remainMins = total % dailyMins;
-    const remainHours = Math.floor(remainMins / 60);
-    const remainFinalMins = remainMins % 60;
-
-    const timePart =
-        remainHours > 0
-            ? remainFinalMins > 0
-                ? `${remainHours}小時${remainFinalMins}分鐘`
-                : `${remainHours}小時`
-            : remainFinalMins > 0
-              ? `${remainFinalMins}分鐘`
-              : "";
-
-    if (fullDays === 0) return timePart || "0分鐘";
-    return timePart ? `${fullDays}天${timePart}` : `${fullDays}天`;
 }
 
 export interface CalcHandle {
     activate(mins: number, exp: number): void;
 }
 
-const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ currentLevel, currentExp }, ref) {
+const Calculator = forwardRef<CalcHandle, LevelExpView>(function Calculator({ currentLevel, currentExp }, ref) {
     const [calcMode, setCalcMode] = useLocalStorage<"days" | "daily" | "units">("calc.mode", "days");
     const [collapsed, setCollapsed] = useLocalStorage("calc.collapsed", false);
     const [targetLevel, setTargetLevel] = useLocalStorage("calc.targetLevel", 10);
@@ -85,42 +52,25 @@ const Calculator = forwardRef<CalcHandle, SharedLevelExp>(function Calculator({ 
         setHasCalculated(false);
     }, [currentExp]);
 
-    const remaining = useMemo(() => {
-        if (targetLevel <= currentLevel) return null;
-        const targetCumulative = getCumulativeExp(targetLevel);
-        const currentCumulative = getCumulativeExp(currentLevel) + currentExp;
-        return Math.max(0, targetCumulative - currentCumulative);
-    }, [currentLevel, currentExp, targetLevel]);
+    const remaining = useMemo(
+        () => calcRemaining(currentLevel, currentExp, targetLevel),
+        [currentLevel, currentExp, targetLevel],
+    );
 
-    const unitsResult = useMemo(() => {
-        if (units <= 0 || expPerInterval <= 0 || intervalMinutes <= 0) return null;
-        const sessions = (units * 60) / intervalMinutes;
-        const totalExpGained = sessions * expPerInterval;
-        const startCumExp = getCumulativeExp(currentLevel) + currentExp;
-        const finalCumExp = startCumExp + totalExpGained;
-        const { level, expIntoLevel, expToNext } = getLevelFromCumExp(finalCumExp);
-        const percent = expToNext > 0 ? (expIntoLevel / expToNext) * 100 : 100;
-        return { totalExpGained, resultLevel: level, percent, expIntoLevel, expToNext };
-    }, [units, expPerInterval, intervalMinutes, currentLevel, currentExp]);
+    const unitsResult = useMemo(
+        () => calcUnitsResult(units, expPerInterval, intervalMinutes, currentLevel, currentExp),
+        [units, expPerInterval, intervalMinutes, currentLevel, currentExp],
+    );
 
-    const daysResult = useMemo(() => {
-        if (remaining === null) return null;
-        const sessions = remaining / expPerInterval;
-        const totalMinutes = sessions * intervalMinutes;
-        return { remaining, totalMinutes };
-    }, [remaining, intervalMinutes, expPerInterval]);
+    const daysResult = useMemo(
+        () => calcDaysResult(remaining, intervalMinutes, expPerInterval),
+        [remaining, intervalMinutes, expPerInterval],
+    );
 
-    const dailyResult = useMemo(() => {
-        if (remaining === null) return null;
-        if (!startDate || !endDate) return null;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        if (days <= 0) return { error: "結束日期必須晚於開始日期" };
-        const expPerDay = Math.ceil(remaining / days);
-        const minutesPerDay = (expPerDay / expPerInterval) * intervalMinutes;
-        return { remaining, days, expPerDay, minutesPerDay };
-    }, [remaining, startDate, endDate, expPerInterval, intervalMinutes]);
+    const dailyResult = useMemo(
+        () => calcDailyResult(remaining, startDate, endDate, expPerInterval, intervalMinutes),
+        [remaining, startDate, endDate, expPerInterval, intervalMinutes],
+    );
 
     function switchMode(mode: "days" | "daily" | "units") {
         setCalcMode(mode);
